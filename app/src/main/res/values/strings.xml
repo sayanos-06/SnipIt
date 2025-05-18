@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">SnipIt</string>
+    <string name="copy_again">Copy Again</string>
+    <string name="todo">TODO</string>
+    <string name="enable_floating_icon">Enable Floating Icon</string>
+</resources>

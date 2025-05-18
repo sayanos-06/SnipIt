@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ImageView android:id="@+id/floating_icon"
+    android:layout_width="60dp"
+    android:layout_height="60dp"
+    android:background="@drawable/circle_background"
+    android:contentDescription="@string/todo"
+    android:padding="4dp"
+    android:src="@mipmap/ic_launcher"
+    xmlns:android="http://schemas.android.com/apk/res/android" />
+
