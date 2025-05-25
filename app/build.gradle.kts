@@ -50,7 +50,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.0")
 
     //material
-    implementation("com.google.android.material:material:1.12.0")
+    implementation("com.google.android.material:material:1.14.0-alpha01")
 
     //roomDB
     implementation("androidx.room:room-runtime:2.7.1")

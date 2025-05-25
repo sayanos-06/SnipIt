@@ -1,6 +1,19 @@
 <resources>
     <string name="app_name">SnipIt</string>
-    <string name="copy_again">Copy Again</string>
+    <string name="copy">Copy</string>
     <string name="todo">TODO</string>
     <string name="enable_floating_icon">Enable Floating Icon</string>
+    <string name="search">Search</string>
+    <string name="searchbar_hint">Search snippets...</string>
+    <string name="delete">Delete</string>
+    <string name="pin">Pin</string>
+    <string name="more">More</string>
+    <string name="save_as">Save as</string>
+    <string name="share">Share</string>
+    <string name="share_as">Share as</string>
+    <string name="text">Text</string>
+    <string name="json">JSON</string>
+    <string name="csv">CSV</string>
+    <string name="select_all">Select All</string>
+    <string name="export_all">Export All</string>
 </resources>

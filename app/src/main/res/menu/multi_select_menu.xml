@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_pin"
+        android:title="@string/pin"
+        android:icon="@drawable/sl_pin_24dp"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_delete"
+        android:title="@string/delete"
+        android:icon="@drawable/round_delete_24"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_more"
+        android:title="@string/more"
+        android:icon="@drawable/baseline_more_vert_24"
+        app:showAsAction="always" />
+</menu>

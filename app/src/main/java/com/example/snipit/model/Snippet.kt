@@ -8,5 +8,6 @@ import androidx.room.PrimaryKey
 data class Snippet(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val text: String,
-    val timestamp: Long
+    val timestamp: Long,
+    val isPinned: Boolean = false
 )
