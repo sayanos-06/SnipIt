@@ -12,6 +12,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
+        android:name=".ui.AppObserver"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -21,6 +22,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SnipIt"
         tools:targetApi="31">
+        <activity
+            android:name=".ui.ClipboardFetcherActivity"
+            android:theme="@style/Theme.Snippet.Transparent"
+            android:exported="false" />
+        <activity
+            android:name=".ui.SettingsActivity"
+            android:exported="false" />
         <activity
             android:name=".ui.MainActivity"
             android:exported="true">
@@ -41,11 +49,11 @@
         </receiver>
 
         <service
-            android:label="floating_icon_service"
             android:name=".service.FloatingIconService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="mediaProjection" />
+            android:foregroundServiceType="mediaProjection"
+            android:label="floating_icon_service" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -56,6 +64,11 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <service
+            android:name=".service.FloatingTrayService"
+            android:exported="false"
+            android:permission="android.permission.SYSTEM_ALERT_WINDOW" />
     </application>
 
 </manifest>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="wrap_content" android:padding="16dp">
+
+    <com.google.android.material.bottomsheet.BottomSheetDragHandleView
+        android:id="@+id/drag_handle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <TextView android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Choose Appearance"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:paddingBottom="12dp"/>
+
+    <LinearLayout
+        android:id="@+id/optionLight"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:clickable="true"
+        android:focusable="true">
+
+        <TextView
+            android:text="Light Theme"
+            android:textSize="16sp"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/optionDark"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:clickable="true"
+        android:focusable="true">
+
+        <TextView
+            android:text="Dark Theme"
+            android:textSize="16sp"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/optionSystem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:clickable="true"
+        android:focusable="true">
+
+        <TextView
+            android:text="Use Device Theme"
+            android:textSize="16sp"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"/>
+    </LinearLayout>
+</LinearLayout>

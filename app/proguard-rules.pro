@@ -19,3 +19,15 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep data classes and Room models
+-keep class com.example.snipit.model.** { *; }
+
+# Keep Room DB + DAO
+-keep class com.example.snipit.data.** { *; }
+
+# Keep ViewModel classes (optional, if you're using reflection-based libraries)
+-keep class androidx.lifecycle.ViewModel
+
+# If using coroutines
+-keepclassmembers class kotlinx.coroutines.** { *; }

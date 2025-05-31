@@ -4,9 +4,16 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
+import com.example.snipit.model.Label
 import com.example.snipit.model.Snippet
+import com.example.snipit.model.SnippetLabelRelation
 
-@Database(entities = [Snippet::class], version = 1)
+@Database(
+    entities = [Snippet::class, Label::class, SnippetLabelRelation::class],
+    version = 1,
+    exportSchema = false
+)
 abstract class SnippetDatabase : RoomDatabase() {
     abstract fun snippetDao(): SnippetDao
 
