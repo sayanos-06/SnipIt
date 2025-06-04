@@ -1,13 +1,10 @@
 package com.example.snipit.ui
 
 import android.annotation.SuppressLint
-import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
-import android.content.res.ColorStateList
-import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.drawable.Drawable
 import android.net.Uri
@@ -26,7 +23,6 @@ import android.view.View
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -62,17 +58,14 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import kotlinx.coroutines.launch
-import androidx.core.graphics.toColorInt
 import com.example.snipit.model.SnippetWithLabels
 import androidx.core.view.isNotEmpty
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var adapter: SnippetAdapter
     private lateinit var recyclerView: RecyclerView
-    private val snippetViewModel: SnippetViewModel by viewModels()
+    internal val snippetViewModel: SnippetViewModel by viewModels()
     private lateinit var toolbar: MaterialToolbar
     private lateinit var selectAllCheckbox: CheckBox
     private lateinit var chipGroupFilter: ChipGroup
@@ -188,6 +181,7 @@ class MainActivity : AppCompatActivity() {
         setupObservers()
         setupAdapterListeners()
         snippetViewModel.refreshSnippets()
+        performAutoCleanup()
     }
 
     override fun onResume() {
@@ -256,16 +250,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupObservers() {
+
         snippetViewModel.snippetsWithLabels.observe(this) { data ->
             fullList = data
-            val labelIdFilter = snippetViewModel.currentLabelFilterId.value
-            val pinnedFilter = snippetViewModel.pinnedFilter.value
-            if (labelIdFilter != null || pinnedFilter != null) {
-                submitFilteredList()
-            } else {
-                submitUnfilteredList()
-            }
-            snippetViewModel.refreshSnippets()
+            submitList()
         }
 
         snippetViewModel.selectedSnippets.observe(this) { snippets ->
@@ -284,7 +272,7 @@ class MainActivity : AppCompatActivity() {
                 snippetViewModel.setLabelFilter(null)
                 snippetViewModel.setPinnedFilter(null)
                 chipGroupActiveFilters.visibility = View.GONE
-                submitUnfilteredList()
+                submitList()
             }
             allChip.isChecked = true
             chipGroupFilter.addView(allChip)
@@ -292,30 +280,30 @@ class MainActivity : AppCompatActivity() {
             chipGroupFilter.addView(createFilterChip("Pinned") {
                 snippetViewModel.setLabelFilter(null)
                 snippetViewModel.setPinnedFilter(true)
-                submitFilteredList()
+                submitList()
             })
 
             chipGroupFilter.addView(createFilterChip("Unpinned") {
                 snippetViewModel.setLabelFilter(null)
                 snippetViewModel.setPinnedFilter(false)
-                submitFilteredList()
+                submitList()
             })
 
             labels.forEach { label ->
                 chipGroupFilter.addView(createFilterChip(label.name) {
                     snippetViewModel.setLabelFilter(label.id)
                     snippetViewModel.setPinnedFilter(null)
-                    submitFilteredList()
+                    submitList()
                 })
             }
         }
 
         snippetViewModel.currentLabelFilterId.observe(this) {
-            submitFilteredList()
+            submitList()
         }
 
         snippetViewModel.pinnedFilter.observe(this) {
-            submitFilteredList()
+            submitList()
         }
 
         selectAllCheckbox.setOnCheckedChangeListener { _, isChecked ->
@@ -379,71 +367,68 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun submitFilteredList() {
-        var filtered = fullList
-        chipGroupActiveFilters.removeAllViews()
+    private fun submitList() {
+        lifecycleScope.launch {
+            chipGroupActiveFilters.removeAllViews()
 
-        val labelIdFilter = snippetViewModel.currentLabelFilterId.value
-        val pinnedFilter = snippetViewModel.pinnedFilter.value
-        val allLabels = snippetViewModel.allLabels.value.orEmpty()
+            var filtered = fullList.filter { item ->
+                val matchesLabel = snippetViewModel.currentLabelFilterId.value?.let { labelId ->
+                    item.labels.any { it.id == labelId }
+                } != false
 
-        labelIdFilter?.let { labelId ->
-            val label = allLabels.find { it.id == labelId }?.name ?: ""
-            label.let {
-                chipGroupActiveFilters.addView(
-                    Chip(this).apply {
-                        text = it
-                        isCloseIconVisible = true
-                        setOnCloseIconClickListener {
-                            snippetViewModel.setLabelFilter(null)
-                            submitFilteredList()
-                            for (i in 0 until chipGroupFilter.childCount) {
-                                val chip = chipGroupFilter.getChildAt(i)
-                                if (chip is Chip && chip.text == "All") {
-                                    chip.isChecked = true
-                                } else if (chip is Chip) {
-                                    chip.isChecked = false
-                                }
-                            }
-                        }
-                    }
-                )
+                val matchesPin = snippetViewModel.pinnedFilter.value?.let { pinned ->
+                    item.snippet.isPinned == pinned
+                } != false
+
+                matchesLabel && matchesPin
             }
-            filtered = filtered.filter { it.labels.any { l -> l.id == labelId } }
-        }
 
-        pinnedFilter?.let { isPinned ->
-            chipGroupActiveFilters.addView(
-                Chip(this).apply {
-                    text = if (isPinned) "Pinned" else "Unpinned"
+            snippetViewModel.currentLabelFilterId.value?.let { labelId ->
+                val labelName =
+                    snippetViewModel.allLabels.value?.find { it.id == labelId }?.name ?: ""
+
+                val filterChip = Chip(this@MainActivity).apply {
+                    text = labelName
                     isCloseIconVisible = true
+                    isCheckable = false
                     setOnCloseIconClickListener {
-                        snippetViewModel.setPinnedFilter(null)
-                        submitFilteredList()
-                        for (i in 0 until chipGroupFilter.childCount) {
-                            val chip = chipGroupFilter.getChildAt(i)
-                            if (chip is Chip && chip.text == "All") {
-                                chip.isChecked = true
-                            } else if (chip is Chip) {
-                                chip.isChecked = false
-                            }
-                        }
+                        snippetViewModel.setLabelFilter(null)
+                        selectAllChipInGroup()
                     }
                 }
-            )
-            filtered = filtered.filter { it.snippet.isPinned == isPinned }
+                chipGroupActiveFilters.addView(filterChip)
+            }
+
+            snippetViewModel.pinnedFilter.value?.let { pinned ->
+                val pinChip = Chip(this@MainActivity).apply {
+                    text = if (pinned) "Pinned" else "Unpinned"
+                    isCloseIconVisible = true
+                    isCheckable = false
+                    setOnCloseIconClickListener {
+                        snippetViewModel.setPinnedFilter(null)
+                        selectAllChipInGroup()
+                    }
+                }
+                chipGroupActiveFilters.addView(pinChip)
+            }
+
+            chipGroupActiveFilters.visibility =
+                if (chipGroupActiveFilters.isNotEmpty()) View.VISIBLE else View.GONE
+
+            if (snippetViewModel.currentLabelFilterId.value != null && snippetViewModel.pinnedFilter.value != null) filtered =
+                fullList
+
+            adapter.submitSnippetsWithLabels(filtered)
         }
-
-        chipGroupActiveFilters.visibility =
-            if (chipGroupActiveFilters.isNotEmpty()) View.VISIBLE else View.GONE
-
-        adapter.submitSnippetsWithLabels(filtered)
     }
 
-    private fun submitUnfilteredList() {
-        chipGroupActiveFilters.removeAllViews()
-        chipGroupActiveFilters.visibility = View.GONE
-        adapter.submitSnippetsWithLabels(fullList)
+    private fun selectAllChipInGroup() {
+        for (i in 0 until chipGroupFilter.childCount) {
+            val chip = chipGroupFilter.getChildAt(i)
+            if (chip is Chip) {
+                chip.isChecked = chip.text.toString().equals("All", ignoreCase = true)
+            }
+        }
     }
 
     private fun checkClipboardAndSave() {
@@ -463,6 +448,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun performAutoCleanup() {
+        val prefs = getSharedPreferences("settings", MODE_PRIVATE)
+
+        prefs.registerOnSharedPreferenceChangeListener { sharedPreferences, key ->
+            if (key == "cleanup_snippet_days" || key == "cleanup_otp_hours") {
+                val snippetDays = sharedPreferences.getInt("cleanup_snippet_days", -1)
+                val otpHours = sharedPreferences.getInt("cleanup_otp_hours", -1)
+                snippetViewModel.performAutoCleanup(snippetDays, otpHours)
+            }
+        }
+
+        val snippetDays = prefs.getInt("cleanup_snippet_days", -1)
+        val otpHours = prefs.getInt("cleanup_otp_hours", -1)
+        snippetViewModel.performAutoCleanup(snippetDays, otpHours)
+
+    }
 
     @SuppressLint("UseCompatLoadingForDrawables")
     private fun showPermissionDialog(
@@ -636,6 +637,47 @@ class MainActivity : AppCompatActivity() {
                         },
                         onNegative = { dialog -> dialog.dismiss() }
                     )
+                    true
+                }
+
+                R.id.action_suggest_cleanup -> {
+                    val toSuggest = snippetViewModel.getSnippetsForCleanup()
+                    if (toSuggest.isEmpty()) {
+                        Toast.makeText(this, "No old snippets to clean!", Toast.LENGTH_SHORT).show()
+                    } else {
+                        val texts = toSuggest.joinToString("\n\n") { it.snippet.text.take(100) }
+
+                        showPermissionDialog(
+                            title = "Suggest Cleanup",
+                            message = "These ${toSuggest.size} snippets seem old or unused:\n\n$texts",
+                            positiveButton = "Delete All",
+                            negativeButton = "Cancel",
+                            onPositive = {
+                                lifecycleScope.launch {
+                                    toSuggest.forEach {
+                                        snippetViewModel.deleteSnippet(it.snippet)
+                                    }
+                                    Snackbar.make(recyclerView, "Deleted ${toSuggest.size} snippets", Snackbar.LENGTH_LONG)
+                                        .setAction("Undo") {
+                                            toSuggest.forEach {
+                                                val labelIds = it.labels.map { l -> l.id }
+                                                snippetViewModel.restoreSnippetWithLabels(it.snippet, labelIds)
+                                            }
+                                        }
+                                        .show()
+                                }
+                            },
+                            onNegative = { dialog -> dialog.dismiss() }
+                        )
+                        MaterialAlertDialogBuilder(this)
+                            .setTitle("Suggest Cleanup")
+                            .setMessage("These ${toSuggest.size} snippets seem old or unused:\n\n$texts")
+                            .setPositiveButton("Delete All") { _, _ ->
+                                toSuggest.forEach { snippetViewModel.deleteSnippet(it.snippet) }
+                            }
+                            .setNegativeButton("Cancel", null)
+                            .show()
+                    }
                     true
                 }
 

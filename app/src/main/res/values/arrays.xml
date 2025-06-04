@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="cleanup_old_entries">
+        <item>Never</item>
+        <item>1 Month</item>
+        <item>2 Months</item>
+        <item>3 Months</item>
+    </string-array>
+    <string-array name="cleanup_old_values">
+        <item>never</item>
+        <item>30</item>
+        <item>60</item>
+        <item>90</item>
+    </string-array>
+
+    <string-array name="cleanup_otp_entries">
+        <item>Never</item>
+        <item>24 Hours</item>
+        <item>36 Hours</item>
+        <item>48 Hours</item>
+    </string-array>
+    <string-array name="cleanup_otp_values">
+        <item>never</item>
+        <item>24</item>
+        <item>36</item>
+        <item>48</item>
+    </string-array>
+</resources>

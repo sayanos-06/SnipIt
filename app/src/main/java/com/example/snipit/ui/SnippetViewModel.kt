@@ -46,10 +46,8 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
     fun refreshSnippets() {
         viewModelScope.launch {
             val updated = repository.getAllSnippetsWithLabelsDirect().toList()
-            Log.d("SnippetViewModel", "Updating Snippets!")
             _snippetsWithLabels.postValue(updated)
         }
-        Log.d("SnippetViewModel", "Refreshing Snippets!")
     }
 
     fun insertOrUpdateSnippet(text: String) {
@@ -168,7 +166,6 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
             selectedLabelIds.forEach { id ->
                 repository.insertSnippetLabelRelation(SnippetLabelRelation(snippetId, id))
             }
-            Log.d("SnippetViewModel", "Assigned labels to snippet")
             refreshSnippets()
         }
     }
@@ -177,7 +174,6 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             repository.deleteRelationsByLabelId(label.id)
             repository.deleteLabel(label)
-            Log.d("SnippetViewModel", "Deleted label with ID: ${label.id} and name: ${label.name}")
             refreshSnippets()
         }
     }
@@ -206,5 +202,40 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
 
     fun setPinnedFilter(pinned: Boolean?) {
         _pinnedFilter.value = pinned
+    }
+
+    fun trackAccess(snippetId: Int) {
+        viewModelScope.launch {
+            repository.incrementAccess(snippetId, System.currentTimeMillis())
+        }
+    }
+
+    fun getSnippetsForCleanup(): List<SnippetWithLabels> {
+        val now = System.currentTimeMillis()
+        return snippetsWithLabels.value.orEmpty().filter {
+            val ageScore = (now - it.snippet.timestamp) / (1000 * 60 * 60 * 24) // days old
+            val useScore = it.snippet.accessCount
+            val isPinned = it.snippet.isPinned
+            !isPinned && (ageScore > 7 && useScore < 2) // Older than a week and rarely used
+        }
+    }
+
+    fun performAutoCleanup(snippetDays: Int, otpHours: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            var deletedCount = 0
+
+            if (snippetDays > 0) {
+                deletedCount += repository.deleteSnippetsOlderThan(System.currentTimeMillis() - snippetDays * 24 * 60 * 60 * 1000L)
+            }
+
+            if (otpHours > 0) {
+                deletedCount += repository.deleteOtpSnippetsOlderThan(System.currentTimeMillis() - otpHours * 60 * 60 * 1000L)
+            }
+
+            if (deletedCount > 0) {
+                Log.d("SnippetCleanup", "Deleted $deletedCount old/OTP snippets")
+                refreshSnippets()
+            }
+        }
     }
 }

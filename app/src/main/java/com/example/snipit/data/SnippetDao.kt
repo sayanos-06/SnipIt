@@ -91,4 +91,13 @@ interface SnippetDao {
 
     @Query("SELECT * FROM Label ORDER BY name ASC")
     suspend fun getAllLabelsDirect(): List<Label>
+
+    @Query("UPDATE Snippet SET accessCount = accessCount + 1, lastAccessed = :now WHERE id = :id")
+    suspend fun incrementAccess(id: Int, now: Long)
+
+    @Query("DELETE FROM Snippet WHERE timestamp < :timeThreshold")
+    fun deleteSnippetsOlderThan(timeThreshold: Long): Int
+
+    @Query("DELETE FROM Snippet WHERE timestamp < :timeThreshold AND text LIKE '%otp%' COLLATE NOCASE")
+    fun deleteOtpSnippetsOlderThan(timeThreshold: Long): Int
 }

@@ -1,9 +1,9 @@
 package com.example.snipit.ui
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.ActivityManager
 import android.content.BroadcastReceiver
-import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.DialogInterface
@@ -13,11 +13,13 @@ import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.CompoundButton
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
@@ -31,15 +33,56 @@ import androidx.core.net.toUri
 import com.example.snipit.service.FloatingIconService
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import androidx.core.content.edit
+import androidx.lifecycle.lifecycleScope
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import com.example.snipit.utils.DriveUploadWorker
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.Scope
+import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
+import com.google.api.client.http.javanet.NetHttpTransport
+import com.google.api.client.json.gson.GsonFactory
+import com.google.api.services.drive.Drive
+import com.google.api.services.drive.DriveScopes
+import com.google.api.services.drive.model.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.io.ByteArrayOutputStream
+import java.util.concurrent.TimeUnit
 
 class SettingsActivity : AppCompatActivity() {
 
     private val settingsViewModel: SettingsViewModel by viewModels()
     private lateinit var snipitServiceSwitch: MaterialSwitch
     private lateinit var floatingTraySwitch: MaterialSwitch
+    private lateinit var tvCloudSync: TextView
+    private lateinit var cloudSyncSetting: LinearLayout
+    private lateinit var googleSignInClient: GoogleSignInClient
+    private var driveService: Drive? = null
     private lateinit var tvAppearanceMode: TextView
     private lateinit var appearanceSetting: LinearLayout
+    private lateinit var cleanupSetting: LinearLayout
     private lateinit var clearClipboardButton: Button
+    enum class CloudSyncMode(val value: Int) {
+        OFF(0),
+        GOOGLE_DRIVE(1);
+
+        companion object {
+            fun fromValue(value: Int): CloudSyncMode {
+                return CloudSyncMode.entries.firstOrNull { it.value == value } ?: OFF
+            }
+        }
+    }
     enum class ThemeMode(val value: Int) {
         LIGHT(AppCompatDelegate.MODE_NIGHT_NO),
         DARK(AppCompatDelegate.MODE_NIGHT_YES),
@@ -50,6 +93,10 @@ class SettingsActivity : AppCompatActivity() {
                 return ThemeMode.entries.firstOrNull { it.value == value } ?: SYSTEM
             }
         }
+    }
+
+    companion object {
+        const val RC_SIGN_IN = 4010
     }
 
     @SuppressLint("ImplicitSamInstance")
@@ -66,8 +113,11 @@ class SettingsActivity : AppCompatActivity() {
 
         snipitServiceSwitch = findViewById(R.id.snipitServiceSwitch)
         floatingTraySwitch = findViewById(R.id.floatingTraySwitch)
+        tvCloudSync = findViewById(R.id.tvCloudSync)
+        cloudSyncSetting = findViewById(R.id.cloudSyncSetting)
         tvAppearanceMode = findViewById(R.id.tvAppearanceMode)
         appearanceSetting = findViewById(R.id.appearanceSetting)
+        cleanupSetting = findViewById(R.id.autoCleanupSetting)
         clearClipboardButton = findViewById(R.id.btnClearClipBoard)
 
         settingsViewModel.isFloatingIconVisible.observe(this) { isEnabled ->
@@ -106,11 +156,59 @@ class SettingsActivity : AppCompatActivity() {
             settingsViewModel.setSnipitServiceState(isChecked, this, snipitServiceSwitch, floatingTraySwitch)
         }
 
+        cloudSyncSetting.setOnClickListener {
+            CloudSyncBottomSheet { selected ->
+                when (selected) {
+                    CloudSyncMode.OFF -> {
+                        driveService = null
+                        googleSignInClient = GoogleSignIn.getClient(this, GoogleSignInOptions.DEFAULT_SIGN_IN)
+                        googleSignInClient.signOut()
+                        Snackbar.make(findViewById(R.id.settingsMain), "Cloud sync disabled", Snackbar.LENGTH_SHORT).show()
+                        settingsViewModel.setCloudSyncMode(selected)
+                    }
+                    CloudSyncMode.GOOGLE_DRIVE -> {
+                        setupGoogleSignIn()
+                        signInToGoogle()
+                    }
+                }
+            }.show(supportFragmentManager, "cloud_sync_picker")
+        }
+
+        settingsViewModel.cloudSyncMode.observe(this) {
+            tvCloudSync.text = when (it) {
+                CloudSyncMode.OFF -> "OFF"
+                CloudSyncMode.GOOGLE_DRIVE -> "GOOGLE DRIVE"
+            }
+        }
+
         appearanceSetting.setOnClickListener {
             val sheet = ThemePickerBottomSheet { selectedMode ->
                 settingsViewModel.setThemeMode(selectedMode)
             }
             sheet.show(supportFragmentManager, "ThemePicker")
+        }
+
+        cleanupSetting.setOnClickListener {
+            val prefs = getSharedPreferences("settings", MODE_PRIVATE)
+            val currentSnippetDays = prefs.getInt("cleanup_snippet_days", -1)
+            val currentOtpHours = prefs.getInt("cleanup_otp_hours", -1)
+
+            val sheet = CleanupRulesBottomSheet(
+                when (currentSnippetDays) {
+                    30 -> 1; 60 -> 2; 90 -> 3; else -> 0
+                },
+                when (currentOtpHours) {
+                    24 -> 1; 36 -> 2; 48 -> 3; else -> 0
+                }
+            ) { snippetDays, otpHours ->
+                prefs.edit {
+                    putInt("cleanup_snippet_days", snippetDays)
+                    putInt("cleanup_otp_hours", otpHours)
+                }
+                settingsViewModel.setCleanupRules(snippetDays, otpHours)
+            }
+
+            sheet.show(supportFragmentManager, "CleanupRules")
         }
 
         settingsViewModel.themeMode.observe(this) { mode ->
@@ -131,8 +229,116 @@ class SettingsActivity : AppCompatActivity() {
             }
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == RC_SIGN_IN && resultCode == RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+            if (task.isSuccessful) {
+                task.result?.let { account ->
+                    buildDriveService(account)
+                    settingsViewModel.setCloudSyncMode(CloudSyncMode.GOOGLE_DRIVE)
+                }
+            } else {
+                Log.e("Drive", "Google sign-in failed", task.exception)
+            }
+        }
+    }
+
+    private fun setupGoogleSignIn() {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .requestScopes(Scope(DriveScopes.DRIVE_FILE))
+            .build()
+
+        googleSignInClient = GoogleSignIn.getClient(this, gso)
+    }
+
+    private fun signInToGoogle() {
+        val account = GoogleSignIn.getLastSignedInAccount(this)
+        if (account != null) {
+            Snackbar.make(findViewById(R.id.settingsMain), "Already signed in with ${account.email}", Snackbar.LENGTH_LONG).show()
+            buildDriveService(account)
+            settingsViewModel.setCloudSyncMode(CloudSyncMode.GOOGLE_DRIVE)
+        } else {
+            startActivityForResult(googleSignInClient.signInIntent, RC_SIGN_IN)
+        }
+    }
+
+    private fun buildDriveService(account: GoogleSignInAccount) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val credential = GoogleAccountCredential.usingOAuth2(
+                    applicationContext, listOf(DriveScopes.DRIVE_FILE)
+                ).apply {
+                    selectedAccount = account.account
+                }
+
+                credential.token
+
+                driveService = Drive.Builder(
+                    NetHttpTransport(),
+                    GsonFactory.getDefaultInstance(),
+                    credential
+                ).setApplicationName("SnipIt").build()
+
+                Log.d("Drive", "Drive service initialized successfully")
+
+                withContext(Dispatchers.Main) {
+                    downloadAndRestoreFromDrive(driveService, this@SettingsActivity)
+                }
+
+                Log.d("Drive", "Drive service initialized successfully")
+                val workRequest = PeriodicWorkRequestBuilder<DriveUploadWorker>(1, TimeUnit.DAYS)
+                    .setConstraints(
+                        Constraints.Builder()
+                            .setRequiredNetworkType(NetworkType.CONNECTED)
+                            .build()
+                    )
+                    .build()
+
+                WorkManager.getInstance(this@SettingsActivity).enqueueUniquePeriodicWork(
+                    "DriveBackup",
+                    ExistingPeriodicWorkPolicy.UPDATE,
+                    workRequest
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    Snackbar.make(findViewById(R.id.settingsMain), "Drive setup failed", Snackbar.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    fun findBackupFile(driveService: Drive?): File? {
+        val result = driveService?.files()?.list()
+            ?.setQ("name='snipit_backup.json' and mimeType='application/json'")
+            ?.setSpaces("drive")
+            ?.setFields("files(id, name)")
+            ?.execute()
+
+        return result?.files?.firstOrNull()
+    }
+
+    fun downloadAndRestoreFromDrive(driveService: Drive?, context: Context) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val file = findBackupFile(driveService) ?: return@launch
+            val outputStream = ByteArrayOutputStream()
+            driveService?.files()?.get(file.id)?.executeMediaAndDownloadTo(outputStream)
+
+            val json = outputStream.toString("UTF-8")
+            val jsonObject = JSONObject(json)
+            val snippetArray = jsonObject.getJSONArray("snippets")
+
+            val importCount = settingsViewModel.restoreSnippets(snippetArray)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Restored $importCount snippets", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private fun isServiceRunning(serviceClass: Class<*>): Boolean {
-        val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val manager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
         return manager.getRunningServices(Int.MAX_VALUE).any {
             it.service.className == serviceClass.name
         }

@@ -34,4 +34,12 @@
     <string name="apply">Apply</string>
     <string name="new_tag_name">New Tag name</string>
     <string name="import_snippets">Import Snippets</string>
+    <string name="suggest_cleanup">Suggest cleanup</string>
+    <string name="auto_cleanup_snippets">Auto-Cleanup Snippets</string>
+    <string name="google_drive">Google Drive</string>
+    <string name="snipit_cloud_database">SnipIt Cloud Database</string>
+    <string name="choose_cloud_sync_option">Choose Cloud Sync Option</string>
+    <string name="cloud_sync">Cloud Sync</string>
+    <string name="off">OFF</string>
+    <string name="disabled">Disabled</string>
 </resources>

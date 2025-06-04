@@ -13,22 +13,19 @@ object TimeUtils {
         val calNow = Calendar.getInstance()
         val calThen = Calendar.getInstance().apply { timeInMillis = timestamp }
 
-        // Check if it's the same day
         if (calNow.get(Calendar.YEAR) == calThen.get(Calendar.YEAR) &&
             calNow.get(Calendar.DAY_OF_YEAR) == calThen.get(Calendar.DAY_OF_YEAR)) {
             val timeFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
             return timeFormat.format(Date(timestamp))
         }
 
-        // Check if it was yesterday
         calNow.add(Calendar.DAY_OF_YEAR, -1)
         if (calNow.get(Calendar.YEAR) == calThen.get(Calendar.YEAR) &&
             calNow.get(Calendar.DAY_OF_YEAR) == calThen.get(Calendar.DAY_OF_YEAR)) {
             return "Yesterday"
         }
 
-        // Reset and check for other ranges
-        val daysAgo = TimeUnit.MILLISECONDS.toDays(diff).toInt()
+        val daysAgo = TimeUnit.MILLISECONDS.toDays(diff).toInt() + 1
         val weeksAgo = daysAgo / 7
         val monthsAgo = daysAgo / 30
         val yearsAgo = daysAgo / 365

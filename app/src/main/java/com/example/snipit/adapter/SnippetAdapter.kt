@@ -5,10 +5,17 @@ import android.app.Application
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.util.Log
+import android.util.TypedValue
 import android.view.*
+import android.view.ViewGroup.MarginLayoutParams
 import android.widget.*
 import androidx.appcompat.widget.PopupMenu
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.graphics.toColorInt
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -20,11 +27,18 @@ import com.example.snipit.model.SnippetWithLabels
 import com.example.snipit.ui.LabelPickerBottomSheet
 import com.example.snipit.ui.MainActivity
 import com.example.snipit.ui.SnippetViewModel
+import com.example.snipit.utils.ActionUtils
 import com.example.snipit.utils.TimeUtils
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialSplitButton
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.snackbar.Snackbar
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.drawable.toDrawable
+import androidx.core.view.marginEnd
+import androidx.core.view.updateLayoutParams
+import com.example.snipit.utils.ActionUtils.toBitmapDrawable
 
 class SnippetAdapter(
     private val context: Context,
@@ -47,6 +61,7 @@ class SnippetAdapter(
         val pin: CheckBox = itemView.findViewById(R.id.pin)
         val btnExpand: Button = itemView.findViewById(R.id.btnExpand)
         val chipGroup: ChipGroup = itemView.findViewById(R.id.chipGroupLabels)
+        val splitBtnLayout: MaterialSplitButton = itemView.findViewById(R.id.actionSplitButton)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SnippetViewHolder {
@@ -55,11 +70,13 @@ class SnippetAdapter(
         return SnippetViewHolder(view)
     }
 
+    @SuppressLint("UseCompatLoadingForDrawables")
     override fun onBindViewHolder(holder: SnippetViewHolder, position: Int) {
         val item = getItem(position)
         val snippet = item.snippet
         val labels = item.labels
         val isSelected = selectedSnippets.contains(snippet)
+        val actions = ActionUtils.getSuggestedActions(context, snippet.text)
 
         holder.itemView.alpha = if (isSelected) 0.5f else 1.0f
         holder.text.text = snippet.text
@@ -93,10 +110,64 @@ class SnippetAdapter(
             holder.chipGroup.visibility = View.GONE
         }
 
+        if(actions.isNotEmpty()) {
+            holder.splitBtnLayout.visibility = View.VISIBLE
+            val layout = holder.splitBtnLayout
+            layout.removeAllViews()
+            val size = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, 48f, context.resources.displayMetrics
+            ).toInt()
+
+            val primary = actions.first()
+            val primaryIcon = primary.icon?.mutate()?.toBitmapDrawable(context, size)
+            val primaryButton = MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                text = primary.label
+                setPadding(0, 0, 16.dpToPx(context), 0)
+                icon = primaryIcon
+                iconTint = null
+                iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
+                iconSize = TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP, 44f, context.resources.displayMetrics
+                ).toInt()
+                setOnClickListener { context.startActivity(primary.intent) }
+            }
+            layout.addView(primaryButton)
+
+            if (actions.size > 1) {
+                val menuButton = MaterialButton(context, null, com.google.android.material.R.attr.materialIconButtonOutlinedStyle).apply {
+                    icon = context.getDrawable(com.google.android.material.R.drawable.m3_split_button_chevron_avd)
+                    setOnClickListener { button ->
+                        val popupMenu = PopupMenu(context, button)
+                        popupMenu.setForceShowIcon(true)
+                        actions.drop(1).forEachIndexed { index, action ->
+                            popupMenu.menu.add(0, index, index, action.label).apply {
+                                icon = action.icon
+                            }
+                        }
+                        popupMenu.setOnMenuItemClickListener {
+                            context.startActivity(actions[it.itemId + 1].intent)
+                            true
+                        }
+                        popupMenu.setOnDismissListener {
+                            (button as MaterialButton).isChecked = false
+                        }
+                        popupMenu.show()
+                    }
+                }
+                layout.addView(menuButton)
+            }
+        }
+        else {
+            holder.splitBtnLayout.visibility = View.GONE
+        }
+
         holder.btnCopy.setOnClickListener {
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             clipboard.setPrimaryClip(ClipData.newPlainText("Copied Text", snippet.text))
             SnippetViewModel.snippetUpdater(context, snippet.text)
+            if (context is MainActivity) {
+                context.snippetViewModel.trackAccess(snippet.id)
+            }
             Snackbar.make(rootView, "Copied!", Snackbar.LENGTH_SHORT).show()
         }
 
@@ -162,6 +233,7 @@ class SnippetAdapter(
         snippetsWithLabels = data.toList()
         fullSnippets = data.toList()
         submitList(data.toList())
+        (context as MainActivity).snippetViewModel.refreshSnippets()
     }
 
     fun filterSnippetList(query: String) {
@@ -202,4 +274,10 @@ class SnippetAdapter(
     }
 
     fun getAllSnippetsWithLabels(): List<SnippetWithLabels> = fullSnippets
+
+    fun Int.dpToPx(context: Context): Int {
+        return TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, this.toFloat(), context.resources.displayMetrics
+        ).toInt()
+    }
 }

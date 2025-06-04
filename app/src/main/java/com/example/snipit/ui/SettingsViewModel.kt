@@ -9,8 +9,14 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.example.snipit.R
+import com.example.snipit.data.SnippetDatabase
+import com.example.snipit.model.Label
+import com.example.snipit.model.Snippet
+import com.example.snipit.model.SnippetLabelRelation
+import com.example.snipit.ui.SettingsActivity.CloudSyncMode
 import com.example.snipit.ui.SettingsActivity.ThemeMode
 import com.google.android.material.materialswitch.MaterialSwitch
+import org.json.JSONArray
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -19,14 +25,23 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val snipitServiceEnabled: LiveData<Boolean> get() = _snipitServiceEnabled
     private val _isFloatingIconVisible = MutableLiveData<Boolean>()
     val isFloatingIconVisible: LiveData<Boolean> get() = _isFloatingIconVisible
+    private val _cleanupSnippetDays = MutableLiveData<Int>()
+    private val _cloudSyncMode = MutableLiveData<CloudSyncMode>()
+    val cloudSyncMode: LiveData<CloudSyncMode> get() = _cloudSyncMode
+    val cleanupSnippetDays: LiveData<Int> = _cleanupSnippetDays
+    private val _cleanupOtpHours = MutableLiveData<Int>()
+    val cleanupOtpHours: LiveData<Int> = _cleanupOtpHours
     private val _themeMode = MutableLiveData<ThemeMode>()
     val themeMode: LiveData<ThemeMode> get() = _themeMode
+    val repository = SnippetDatabase.getInstance(application).snippetDao()
 
     init {
         _snipitServiceEnabled.value = prefs.getBoolean("snipit_service_enabled", true)
         _isFloatingIconVisible.value = prefs.getBoolean("floating_tray_enabled", false)
         val savedMode = prefs.getInt("theme_mode", ThemeMode.SYSTEM.value)
         _themeMode.value = ThemeMode.fromValue(savedMode)
+        val savedCloudSyncMode = prefs.getInt("cloud_sync_mode", CloudSyncMode.OFF.value)
+        _cloudSyncMode.value = CloudSyncMode.fromValue(savedCloudSyncMode)
     }
 
     fun setFloatingIconState(state: Boolean) {
@@ -58,5 +73,39 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         prefs.edit { putInt("theme_mode", mode.value) }
         _themeMode.value = mode
         AppCompatDelegate.setDefaultNightMode(mode.value)
+    }
+
+    fun setCloudSyncMode(mode: CloudSyncMode) {
+        prefs.edit { putInt("cloud_sync_mode", mode.value) }
+        _cloudSyncMode.value = mode
+    }
+
+    fun setCleanupRules(snippetDays: Int, otpHours: Int) {
+        _cleanupSnippetDays.value = snippetDays
+        _cleanupOtpHours.value = otpHours
+    }
+
+    suspend fun restoreSnippets(snippetArray: JSONArray) : Int {
+        var count = 0
+        for (i in 0 until snippetArray.length()) {
+            val item = snippetArray.getJSONObject(i)
+            val text = item.getString("text")
+            val timestamp = item.getLong("timestamp")
+            val labels = item.optJSONArray("labels")?.let { arr ->
+                List(arr.length()) { index -> arr.getString(index) }
+            } ?: emptyList()
+
+            if (repository.getSnippetByText(text) != null) continue
+
+            val id = repository.insert(Snippet(text = text, timestamp = timestamp)).toInt()
+            val labelMap = repository.getAllLabelsDirect().associateBy { it.name }
+
+            for (label in labels) {
+                val labelId = labelMap[label]?.id ?: repository.insertLabelDirect(Label(name = label)).toInt()
+                repository.insertSnippetLabelRelation(SnippetLabelRelation(id, labelId))
+            }
+            count ++
+        }
+        return count
     }
 }
