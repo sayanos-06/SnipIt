@@ -75,6 +75,7 @@ class MainActivity : AppCompatActivity() {
     private var selectedSnippets: List<SnippetWithLabels> = emptyList()
     private var fullList: List<SnippetWithLabels> = emptyList()
     private var pendingExportFormat: ExportFormat? = null
+    private var currentSearchQuery: String = ""
 
     enum class ExportFormat { TXT, JSON, CSV }
 
@@ -230,7 +231,8 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     override fun onQueryTextChange(newText: String?): Boolean {
-                        adapter.filterSnippetList(newText ?: "")
+                        currentSearchQuery = newText.orEmpty()
+                        submitList()
                         return true
                     }
                 })
@@ -410,6 +412,12 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 chipGroupActiveFilters.addView(pinChip)
+            }
+
+            if (currentSearchQuery.isNotBlank()) {
+                filtered = filtered.filter {
+                    it.snippet.text.contains(currentSearchQuery, ignoreCase = true)
+                }
             }
 
             chipGroupActiveFilters.visibility =

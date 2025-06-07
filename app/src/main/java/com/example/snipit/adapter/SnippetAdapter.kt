@@ -242,15 +242,6 @@ class SnippetAdapter(
         (context as MainActivity).snippetViewModel.refreshSnippets()
     }
 
-    fun filterSnippetList(query: String) {
-        val filtered = if (query.isBlank()) {
-            fullSnippets
-        } else {
-            fullSnippets.filter { it.snippet.text.contains(query, ignoreCase = true) }
-        }
-        submitList(filtered)
-    }
-
     @SuppressLint("NotifyDataSetChanged")
     private fun toggleSelectedSnippets(snippet: Snippet) {
         if (!selectedSnippets.add(snippet)) selectedSnippets.remove(snippet)
