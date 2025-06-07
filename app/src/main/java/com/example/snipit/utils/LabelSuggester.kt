@@ -14,7 +14,9 @@ object LabelSuggester {
         if (Regex("\\+?[0-9][0-9()\\-\\s]{7,}").containsMatchIn(text)) {
             suggestions.add("Phone")
         }
-        if (Regex("https?://\\S+").containsMatchIn(text)) {
+        val fullUrlRegex = Regex("""https?://\S+""")
+        val fallbackUrlRegex = Regex("""(?<!@)(?<!\S)(?:www\.)?[a-zA-Z0-9\-]+\.[a-zA-Z]{2,}(?:/\S*)?(?!\S)""")
+        if (fullUrlRegex.containsMatchIn(text) || fallbackUrlRegex.containsMatchIn(text)) {
             suggestions.add("Link")
         }
 

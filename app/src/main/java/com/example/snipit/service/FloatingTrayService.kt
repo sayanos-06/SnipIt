@@ -74,7 +74,7 @@ class FloatingTrayService : Service() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.CENTER_HORIZONTAL or Gravity.TOP
@@ -240,7 +240,6 @@ class FloatingTrayService : Service() {
                         Intent.FLAG_ACTIVITY_MULTIPLE_TASK
             }
             startActivity(intent)
-
         }
     }
 

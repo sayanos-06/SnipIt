@@ -29,24 +29,31 @@ object ActionUtils {
 
         val fullUrlRegex = Regex("""https?://\S+""")
         val fallbackUrlRegex = Regex("""(?<!@)(?<!\S)(?:www\.)?[a-zA-Z0-9\-]+\.[a-zA-Z]{2,}(?:/\S*)?(?!\S)""")
-        val match = fullUrlRegex.find(text) ?: fallbackUrlRegex.find(text)
-        match?.value?.let { rawUrl ->
-            val fullUrl = if (!rawUrl.startsWith("http")) "http://$rawUrl" else rawUrl
-            try {
-                if(!isUrlValid(fullUrl)) return@let
-                val intent = Intent(Intent.ACTION_VIEW, fullUrl.toUri())
-                val resolveInfo = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
-                if (resolveInfo != null) {
-                    val icon = resolveInfo.activityInfo?.applicationInfo?.let {
-                        packageManager.getApplicationIcon(it)
+        val match =
+            if (fullUrlRegex.containsMatchIn(text)) fullUrlRegex.find(text)
+            else if (fallbackUrlRegex.containsMatchIn(text)) fallbackUrlRegex.find(text)
+            else null
+
+        match?.value.let { rawUrl ->
+            val fullUrl = rawUrl?.startsWith("http")?.let { if (!it) "http://$rawUrl" else rawUrl }
+            if (fullUrl != null) {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, fullUrl.toUri())
+                    val resolveInfo =
+                        packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+                    if (resolveInfo != null) {
+                        val icon = resolveInfo.activityInfo?.applicationInfo?.let {
+                            packageManager.getApplicationIcon(it)
+                        }
+                        Log.d("IntentDebug", icon.toString())
+                        actions.add(SuggestedAction("Open Link", icon, intent))
                     }
-                    Log.d("IntentDebug", icon.toString())
-                    actions.add(SuggestedAction("Open Link", icon, intent))
+                } catch (_: Exception) {
                 }
-            } catch (_: Exception) { }
+            }
         }
 
-        Regex("""\+?\d[\d\-\s()]{9,}\d""").find(text)?.value?.let { phone ->
+        Regex("""\+?[0-9][0-9()\-\s]{7,}""").find(text)?.value?.let { phone ->
             val intent = Intent(Intent.ACTION_DIAL, "tel:$phone".toUri())
             val icon = intent.resolveActivity(packageManager)?.let {
                 packageManager.getApplicationIcon(it.packageName)

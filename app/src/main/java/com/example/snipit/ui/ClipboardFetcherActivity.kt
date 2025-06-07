@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -28,7 +29,6 @@ class ClipboardFetcherActivity : AppCompatActivity() {
         }
 
         Handler(Looper.getMainLooper()).postDelayed({}, 1000)
-
         val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
         val clipData = clipboard.primaryClip
         val text = clipData?.getItemAt(0)?.text?.toString()?.trim()
