@@ -122,13 +122,19 @@ class SnippetAdapter(
             val primaryIcon = primary.icon?.mutate()?.toBitmapDrawable(context, size)
             val primaryButton = MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
                 text = primary.label
-                setPadding(0, 0, 16.dpToPx(context), 0)
-                icon = primaryIcon
-                iconTint = null
+                if (primaryIcon != null) {
+                    icon = primaryIcon
+                    iconTint = null
+                    iconSize = TypedValue.applyDimension(
+                        TypedValue.COMPLEX_UNIT_DIP, 44f, context.resources.displayMetrics
+                    ).toInt()
+                    setPadding(0, 0, 16.dpToPx(context), 0)
+                }
+                else {
+                    icon = context.getDrawable(R.drawable.public_24px)
+                    setPadding(12.dpToPx(context), 0, 16.dpToPx(context), 0)
+                }
                 iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
-                iconSize = TypedValue.applyDimension(
-                    TypedValue.COMPLEX_UNIT_DIP, 44f, context.resources.displayMetrics
-                ).toInt()
                 setOnClickListener { context.startActivity(primary.intent) }
             }
             layout.addView(primaryButton)

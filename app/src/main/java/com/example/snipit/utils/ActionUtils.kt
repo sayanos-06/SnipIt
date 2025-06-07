@@ -1,5 +1,6 @@
 package com.example.snipit.utils
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -14,6 +15,7 @@ import com.example.snipit.data.SuggestedAction
 import androidx.core.net.toUri
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toDrawable
+import com.example.snipit.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -22,33 +24,51 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 object ActionUtils {
+    @SuppressLint("UseCompatLoadingForDrawables")
     fun getSuggestedActions(context: Context, text: String): List<SuggestedAction> {
         val actions = mutableListOf<SuggestedAction>()
 
         val packageManager = context.packageManager
 
-        val fullUrlRegex = Regex("""https?://\S+""")
+        val fullUrlRegex1 = Regex("""https?://\S+""")
+        val fullUrlRegex2 = Regex("""http?://\S+""")
         val fallbackUrlRegex = Regex("""(?<!@)(?<!\S)(?:www\.)?[a-zA-Z0-9\-]+\.[a-zA-Z]{2,}(?:/\S*)?(?!\S)""")
         val match =
-            if (fullUrlRegex.containsMatchIn(text)) fullUrlRegex.find(text)
+            if (fullUrlRegex1.containsMatchIn(text)) fullUrlRegex1.find(text)
+            else if (fullUrlRegex2.containsMatchIn(text)) fullUrlRegex2.find(text)
             else if (fallbackUrlRegex.containsMatchIn(text)) fallbackUrlRegex.find(text)
             else null
 
         match?.value.let { rawUrl ->
-            val fullUrl = rawUrl?.startsWith("http")?.let { if (!it) "http://$rawUrl" else rawUrl }
+            val fullUrl = rawUrl?.startsWith("http")?.let { if (!it) "https://$rawUrl" else rawUrl }
+            fullUrl?.replace("\n","")
             if (fullUrl != null) {
                 try {
+                    if (isUrlValid(fullUrl)) return@let
                     val intent = Intent(Intent.ACTION_VIEW, fullUrl.toUri())
-                    val resolveInfo =
-                        packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+                    val resolveInfo = packageManager.resolveActivity(intent, 0)
                     if (resolveInfo != null) {
-                        val icon = resolveInfo.activityInfo?.applicationInfo?.let {
-                            packageManager.getApplicationIcon(it)
+                        val packageName = resolveInfo.activityInfo.packageName
+                        val icon = try {
+                            if (!packageName.contains("chrome")) {
+                                packageManager.getApplicationInfo(packageName, 0).let {
+                                    packageManager.getApplicationIcon(it)
+                                }
+                            }
+                            else {
+                                Log.d("ActionUtils", "It's chrome")
+                                null
+                            }
+                        } catch (e: Exception) {
+                            Log.d("ActionUtils", "Failed to get icon for package: $packageName Error: ${e.localizedMessage}")
+                            null
                         }
-                        Log.d("IntentDebug", icon.toString())
                         actions.add(SuggestedAction("Open Link", icon, intent))
+                    } else {
+                        Log.e("ActionUtils", "No activity found to handle intent: $intent")
                     }
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    Log.e("ActionUtils", "Failed to create intent: ${e.localizedMessage}")
                 }
             }
         }
@@ -113,7 +133,6 @@ object ActionUtils {
         return false
     }
 
-
     fun Drawable.toBitmapDrawable(context: Context, sizePx: Int): BitmapDrawable {
         val bitmap = createBitmap(sizePx, sizePx)
         val canvas = Canvas(bitmap)
@@ -122,11 +141,9 @@ object ActionUtils {
             drawable.setBounds(0, 0, sizePx, sizePx)
             drawable.draw(canvas)
         } else {
+            this.setBounds(0, 0, sizePx, sizePx)
             this.draw(canvas)
         }
-        return bitmap.toDrawable(context.resources).apply {
-            setTintList(null)
-            setTintMode(null)
-        }
+        return bitmap.toDrawable(context.resources)
     }
 }
