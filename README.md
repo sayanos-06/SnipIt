@@ -8,6 +8,23 @@ SnipIt is an intelligent clipboard manager for Android that helps you capture, o
 
 ---
 
+## 📸 App Screenshots
+
+<p align="center">
+  <img src="screenshots/Screenshot_1.png" width="22%" />
+  <img src="screenshots/Screenshot_2.png" width="22%" />
+  <img src="screenshots/Screenshot_3.png" width="22%" />
+  <img src="screenshots/Screenshot_4.png" width="22%" />
+</p>
+<p align="center">
+  <img src="screenshots/Screenshot_5.png" width="22%" />
+  <img src="screenshots/Screenshot_6.png" width="22%" />
+  <img src="screenshots/Screenshot_7.png" width="22%" />
+  <img src="screenshots/Screenshot_8.png" width="22%" />
+</p>
+
+---
+
 ## 📚 Table of Contents
 
 - [✨ Features](#-features)
