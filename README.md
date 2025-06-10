@@ -32,7 +32,6 @@ SnipIt is an intelligent clipboard manager for Android that helps you capture, o
 - [📁 Import/Export & Sync](#importexport--sync)
 - [⚙️ Settings & Controls](#️-settings--controls)
 - [🧪 Testing & Compatibility](#-testing--compatibility)
-- [🧭 Upcoming Features](#-upcoming-features)
 - [🏗️ Tech Stack](#️-tech-stack)
 - [🚧 Contributing](#-contributing)
 - [📃 License](#-license)
@@ -68,12 +67,19 @@ SnipIt is an intelligent clipboard manager for Android that helps you capture, o
   - Assign multiple labels/folders to a single snippet
   - Organize snippets like Gmail-style tags
 
+- 🔍 **Advanced Search and Filter**
+  - Keyword-based and label-based filtering
+  - Supports fuzzy matching and real-time highlighting
+
 - 🧠 **Suggested Actions**
-  - Regex-powered contextual actions:
-    - 🌐 Open Link
-    - 📞 Call Number
-    - ✉️ Send Email
-    - ⚙️ More coming soon!
+  - Regex + ML-powered contextual suggestions:
+    - 🌐 Open Links
+    - 📞 Call Phone Numbers
+    - ✉️ Send Emails
+    - 🗓️ Add Events to Calendar
+    - 🧠 Powered by TFLite and Duckling NLP
+  - Duckling-detected entities cached for offline use
+  - Smart split-button UI for suggested actions
 
 ### 📁 Import/Export & Sync
 - 📤 **Export Snippets**
@@ -83,8 +89,9 @@ SnipIt is an intelligent clipboard manager for Android that helps you capture, o
 - 📥 **Import Snippets**
   - Import previously backed-up files (JSON/CSV/TXT)
 
-- ☁️ **Cloud Sync (in-progress)**
-  - Google Drive Sync
+- ☁️ **Cloud Sync**
+  - 🔄 Google Drive Sync (SAF + account-based)
+  - Periodic or manual sync via Settings
 
 ### ⚙️ Settings & Controls
 - 🎨 **Theme Selection (Light/Dark)**
@@ -107,35 +114,13 @@ SnipIt is an intelligent clipboard manager for Android that helps you capture, o
 
 ---
 
-### 🔮 Upcoming Features
-
-- 🤖 **ML-Based Suggested Actions (Offline)**
-  - Lightweight TensorFlow Lite model for on-device prediction
-
-- 🔄 **Advanced Cloud Sync**
-  - SnipIt Cloud Databse Sync (Firebase-based and multi-device support at Real Time)
-
-- 🔐 **Clipboard Cleaner Recommender**
-  - AI-based cleanup suggestions based on frequency, age, and type
-
-- 🧰 **Widget Support**
-  - Home screen widget to access recent snippets
-
-- 🛑 **Clipboard Monitoring Controls**
-  - App exclusions
-  - Minimum length filters
-  - Manual enable/disable toggle
-  - Snooze monitoring
-
----
-
 ## 🏗️ Tech Stack
 
 - 💻 **Language**: Kotlin
 - ☕ **Architecture**: MVVM (ViewModel + LiveData + Room)
 - 🔲 **UI**: Material Components + BottomSheets + RecyclerViews
-- 🧠 **ML**: TensorFlow Lite (TFLite Model Maker)
-- 🔗 **Cloud**: Firebase Firestore + Google Drive API
+- 🧠 **ML**: Duckling NLP via Flask backend
+- 🔗 **Cloud**: Google Drive API, SAF Sync
 
 ---
 
