@@ -6,7 +6,11 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.drawable.Drawable
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.BackgroundColorSpan
 import android.util.TypedValue
 import android.view.*
 import android.widget.*
@@ -69,8 +73,29 @@ class SnippetAdapter(
         val isSelected = selectedSnippets.contains(snippet)
 
         holder.itemView.alpha = if (isSelected) 0.5f else 1.0f
-        holder.text.text = snippet.text
         holder.time.text = TimeUtils.getRelativeTime(snippet.timestamp)
+
+        val snipText = snippet.text
+        val query = (context as? MainActivity)?.currentSearchQuery.orEmpty()
+
+        if (query.isNotBlank()) {
+            val start = snipText.indexOf(query, ignoreCase = true)
+            if (start >= 0) {
+                val end = start + query.length
+                val spannable = SpannableString(snipText)
+                spannable.setSpan(
+                    BackgroundColorSpan(Color.YELLOW),
+                    start, end,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                holder.text.text = spannable
+            } else {
+                holder.text.text = snipText
+            }
+        } else {
+            holder.text.text = snipText
+        }
+
 
         holder.pin.setOnCheckedChangeListener(null)
         holder.pin.isChecked = snippet.isPinned
