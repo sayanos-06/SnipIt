@@ -30,16 +30,6 @@
         android:icon="@drawable/add_to_drive_24px" />
 
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnSnipitCloud"
-        android:layout_width="300dp"
-        android:layout_height="50dp"
-        android:layout_gravity="center_horizontal"
-        style="@style/Widget.Material3.Button.TonalButton"
-        android:textSize="16sp"
-        android:text="@string/snipit_cloud_database"
-        android:icon="@drawable/add_to_drive_24px" />
-
-    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnDisabled"
         android:layout_width="300dp"
         android:layout_height="50dp"
