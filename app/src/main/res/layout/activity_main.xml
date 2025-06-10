@@ -23,12 +23,24 @@
             app:menu="@menu/top_app_bar" />
     </com.google.android.material.appbar.AppBarLayout>
 
+    <TextView
+        android:id="@+id/emptyStateText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical|center_horizontal"
+        android:gravity="center"
+        android:text="@string/no_snippets_added_yet_ncopy_one_to_get_started"
+        android:textSize="16sp"
+        android:alpha="0.7"
+        android:padding="24dp"
+        android:visibility="gone"
+        android:textColor="?attr/colorOnBackground"/>
+
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
-
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -57,6 +69,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
+                android:clickable="true"
                 app:singleSelection="false"
                 app:chipSpacing="8dp"
                 android:visibility="gone"

@@ -6,57 +6,43 @@
     <com.google.android.material.bottomsheet.BottomSheetDragHandleView
         android:id="@+id/drag_handle"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="30dp"/>
 
     <TextView android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Choose Appearance"
+        android:text="@string/choose_appearance"
         android:textStyle="bold"
         android:textSize="18sp"
-        android:paddingBottom="12dp"/>
+        android:paddingBottom="8dp"/>
 
-    <LinearLayout
-        android:id="@+id/optionLight"
+    <RadioGroup
+        android:id="@+id/themeRadioGroup"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="12dp"
-        android:clickable="true"
-        android:focusable="true">
+        android:orientation="vertical">
 
-        <TextView
-            android:text="Light Theme"
-            android:textSize="16sp"
+        <RadioButton
+            android:id="@+id/radioLight"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_width="wrap_content"/>
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/optionDark"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="12dp"
-        android:clickable="true"
-        android:focusable="true">
-
-        <TextView
-            android:text="Dark Theme"
+            android:text="@string/light_theme"
             android:textSize="16sp"
+            android:padding="12dp" />
+
+        <RadioButton
+            android:id="@+id/radioDark"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_width="wrap_content" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/optionSystem"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="12dp"
-        android:clickable="true"
-        android:focusable="true">
-
-        <TextView
-            android:text="Use Device Theme"
+            android:text="@string/dark_theme"
             android:textSize="16sp"
+            android:padding="12dp" />
+
+        <RadioButton
+            android:id="@+id/radioSystem"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_width="wrap_content"/>
-    </LinearLayout>
+            android:text="@string/use_device_theme"
+            android:textSize="16sp"
+            android:padding="12dp" />
+    </RadioGroup>
 </LinearLayout>

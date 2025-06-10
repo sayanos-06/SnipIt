@@ -1,12 +1,11 @@
 package com.example.snipit.utils
 
-import android.content.Context
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
 
 object TimeUtils {
-    fun getRelativeTime(timestamp: Long, context: Context): String {
+    fun getRelativeTime(timestamp: Long): String {
         val now = System.currentTimeMillis()
         val diff = now - timestamp
 
@@ -35,6 +34,13 @@ object TimeUtils {
             weeksAgo < 4 -> "$weeksAgo week${if (weeksAgo > 1) "s" else ""} ago"
             monthsAgo < 12 -> "$monthsAgo month${if (monthsAgo > 1) "s" else ""} ago"
             else -> "$yearsAgo year${if (yearsAgo > 1) "s" else ""} ago"
+        }
+    }
+
+    fun formatSyncTime(timestamp: Long): String {
+        return if (timestamp <= 0L) "Never" else {
+            val sdf = SimpleDateFormat("hh:mm a, dd MMM yyyy", Locale.getDefault())
+            sdf.format(Date(timestamp))
         }
     }
 }

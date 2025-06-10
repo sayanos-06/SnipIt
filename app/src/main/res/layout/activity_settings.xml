@@ -99,6 +99,46 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/suggestedActionsSetting"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="12dp"
+                android:paddingHorizontal="8dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/suggested_actions"
+                        android:textStyle="bold"
+                        android:textSize="18sp"
+                        android:textColor="?attr/colorOnBackground" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/enable_ai_or_regex_based_actions"
+                        android:textColor="?attr/colorOnBackground"
+                        android:alpha="0.7"
+                        android:paddingTop="2dp" />
+                </LinearLayout>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/suggestedActionsSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true" />
+            </LinearLayout>
+
+
+            <LinearLayout
                 android:id="@+id/autoCleanupSetting"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -134,7 +174,6 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:padding="8dp"
-                android:layout_marginBottom="8dp"
                 android:background="?attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
@@ -166,12 +205,32 @@
                     app:tint="?attr/colorOnBackground" />
             </LinearLayout>
 
+            <TextView
+                android:id="@+id/lastSyncedText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="8dp"
+                android:layout_marginBottom="8dp"
+                android:text="@string/last_synced_never"
+                android:textSize="14sp"
+                android:textColor="?attr/colorOnBackground"
+                android:alpha="0.7" />
+
+            <Button
+                android:id="@+id/btnBackupNow"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="8dp"
+                android:visibility="gone"
+                android:text="@string/backup_now" />
+
             <LinearLayout
                 android:id="@+id/appearanceSetting"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:padding="8dp"
+                android:layout_marginTop="4dp"
                 android:layout_marginBottom="16dp"
                 android:background="?attr/selectableItemBackground"
                 android:clickable="true"
@@ -214,11 +273,13 @@
 
             <Button
                 android:id="@+id/btnClearClipBoard"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_width="200dp"
+                android:layout_height="60dp"
+                android:layout_gravity="center_horizontal"
+                android:textSize="18sp"
                 android:text="@string/clear_clipboard"
-                android:backgroundTint="?attr/colorError"
-                android:textColor="@android:color/white" />
+                android:backgroundTint="@color/md_theme_error"
+                android:textColor="@color/md_theme_onPrimary" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

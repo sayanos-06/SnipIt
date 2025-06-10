@@ -6,6 +6,69 @@
     android:orientation="vertical"
     android:padding="16dp">
 
+    <com.google.android.material.bottomsheet.BottomSheetDragHandleView
+        android:id="@+id/drag_handle"
+        android:layout_width="match_parent"
+        android:layout_height="30dp"/>
+
+    <LinearLayout
+        android:id="@+id/myContainer"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:padding="8dp"
+            android:text="Auto-Cleanup Settings" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:padding="8dp"
+            android:text="Clean Snippets after folowing months" />
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/snippetSlider"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:valueFrom="0.0"
+            android:valueTo="3.0"
+            android:stepSize="1.0" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:padding="8dp"
+            android:layout_marginTop="8dp"
+            android:text="Clean OTPs after folowing hours" />
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/otpSlider"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:valueFrom="0.0"
+            android:valueTo="48.0"
+            android:stepSize="12.0" />
+
+        <Button
+            android:id="@+id/button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="8dp"
+            style="@style/Widget.Material3.Button"
+            android:textSize="16sp"
+            android:text="@string/apply" />
+
+    </LinearLayout>
+
     <LinearLayout
         android:id="@+id/containerRules"
         android:orientation="vertical"

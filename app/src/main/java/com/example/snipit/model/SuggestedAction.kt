@@ -1,4 +1,4 @@
-package com.example.snipit.data
+package com.example.snipit.model
 
 import android.content.Intent
 import android.graphics.drawable.Drawable

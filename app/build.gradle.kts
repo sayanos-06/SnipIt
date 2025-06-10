@@ -13,8 +13,8 @@ android {
         applicationId = "com.example.snipit"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -79,4 +79,9 @@ dependencies {
     implementation("com.google.api-client:google-api-client-android:2.8.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev197-1.25.0")
     implementation("com.google.oauth-client:google-oauth-client-jetty:1.39.0")
+
+    //okhttpClient
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.moshi:moshi:1.15.2")
+    implementation("com.squareup.moshi:moshi-kotlin:1.15.2")
 }

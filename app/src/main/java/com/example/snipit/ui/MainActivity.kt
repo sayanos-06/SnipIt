@@ -14,7 +14,6 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.DocumentsContract
 import android.provider.Settings
-import android.util.Log
 import android.view.ActionMode
 import android.view.ContextThemeWrapper
 import android.view.Menu
@@ -23,7 +22,7 @@ import android.view.View
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageView
-import android.widget.Toast
+import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -40,6 +39,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.edit
+import androidx.core.view.WindowCompat
 import androidx.recyclerview.widget.DefaultItemAnimator
 import com.example.snipit.model.Snippet
 import com.google.android.material.appbar.MaterialToolbar
@@ -60,6 +60,9 @@ import com.google.android.material.chip.ChipGroup
 import kotlinx.coroutines.launch
 import com.example.snipit.model.SnippetWithLabels
 import androidx.core.view.isNotEmpty
+import com.google.android.material.textfield.TextInputEditText
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
@@ -70,12 +73,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var selectAllCheckbox: CheckBox
     private lateinit var chipGroupFilter: ChipGroup
     private lateinit var chipGroupActiveFilters: ChipGroup
+    private lateinit var emptyStateText: TextView
 
     private var actionMode: ActionMode? = null
     private var selectedSnippets: List<SnippetWithLabels> = emptyList()
     private var fullList: List<SnippetWithLabels> = emptyList()
     private var pendingExportFormat: ExportFormat? = null
-    private var currentSearchQuery: String = ""
+    internal var currentSearchQuery: String = ""
 
     enum class ExportFormat { TXT, JSON, CSV }
 
@@ -159,12 +163,20 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+        window.statusBarColor = getColor(R.color.md_theme_primary)
+        val decorView = window.decorView
+        val insetsController = WindowCompat.getInsetsController(window, decorView)
+        val isDarkTheme = resources.configuration.uiMode and
+                android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        insetsController.isAppearanceLightStatusBars = !isDarkTheme
 
         toolbar = findViewById(R.id.toolbar)
         selectAllCheckbox = findViewById(R.id.selectAllCheckBox)
         recyclerView = findViewById(R.id.snippetRecyclerView)
         chipGroupFilter = findViewById(R.id.chipGroupFilter)
         chipGroupActiveFilters = findViewById(R.id.chipGroupActiveFilters)
+        emptyStateText = findViewById(R.id.emptyStateText)
+
         setSupportActionBar(toolbar)
 
         adapter = SnippetAdapter(this, findViewById(android.R.id.content))
@@ -233,6 +245,7 @@ class MainActivity : AppCompatActivity() {
                     override fun onQueryTextChange(newText: String?): Boolean {
                         currentSearchQuery = newText.orEmpty()
                         submitList()
+                        adapter.refreshVisibleItems()
                         return true
                     }
                 })
@@ -255,7 +268,16 @@ class MainActivity : AppCompatActivity() {
 
         snippetViewModel.snippetsWithLabels.observe(this) { data ->
             fullList = data
-            submitList()
+            if (data.isNullOrEmpty()) {
+                recyclerView.visibility = View.GONE
+                chipGroupFilter.visibility = View.GONE
+                emptyStateText.visibility = View.VISIBLE
+            } else {
+                chipGroupFilter.visibility = View.VISIBLE
+                recyclerView.visibility = View.VISIBLE
+                emptyStateText.visibility = View.GONE
+                submitList()
+            }
         }
 
         snippetViewModel.selectedSnippets.observe(this) { snippets ->
@@ -371,8 +393,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun submitList() {
         lifecycleScope.launch {
-            chipGroupActiveFilters.removeAllViews()
-
             var filtered = fullList.filter { item ->
                 val matchesLabel = snippetViewModel.currentLabelFilterId.value?.let { labelId ->
                     item.labels.any { it.id == labelId }
@@ -386,37 +406,26 @@ class MainActivity : AppCompatActivity() {
             }
 
             snippetViewModel.currentLabelFilterId.value?.let { labelId ->
-                val labelName =
-                    snippetViewModel.allLabels.value?.find { it.id == labelId }?.name ?: ""
-
-                val filterChip = Chip(this@MainActivity).apply {
-                    text = labelName
-                    isCloseIconVisible = true
-                    isCheckable = false
-                    setOnCloseIconClickListener {
-                        snippetViewModel.setLabelFilter(null)
-                        selectAllChipInGroup()
-                    }
+                val labelName = snippetViewModel.allLabels.value?.find { it.id == labelId }?.name ?: return@let
+                addOrUpdateActiveChip("filter_label_$labelId", labelName) {
+                    snippetViewModel.setLabelFilter(null)
                 }
-                chipGroupActiveFilters.addView(filterChip)
             }
 
             snippetViewModel.pinnedFilter.value?.let { pinned ->
-                val pinChip = Chip(this@MainActivity).apply {
-                    text = if (pinned) "Pinned" else "Unpinned"
-                    isCloseIconVisible = true
-                    isCheckable = false
-                    setOnCloseIconClickListener {
-                        snippetViewModel.setPinnedFilter(null)
-                        selectAllChipInGroup()
-                    }
+                val pinLabel = if (pinned) "Pinned" else "Unpinned"
+                addOrUpdateActiveChip("filter_pin_$pinned", pinLabel) {
+                    snippetViewModel.setPinnedFilter(null)
                 }
-                chipGroupActiveFilters.addView(pinChip)
             }
 
             if (currentSearchQuery.isNotBlank()) {
                 filtered = filtered.filter {
-                    it.snippet.text.contains(currentSearchQuery, ignoreCase = true)
+                    val matchesText = it.snippet.text.contains(currentSearchQuery, ignoreCase = true)
+                    val matchesLabel = it.labels.any { label ->
+                        label.name.contains(currentSearchQuery, ignoreCase = true)
+                    }
+                    matchesText || matchesLabel
                 }
             }
 
@@ -428,6 +437,29 @@ class MainActivity : AppCompatActivity() {
 
             adapter.submitSnippetsWithLabels(filtered)
         }
+    }
+
+    private fun addOrUpdateActiveChip(tag: String, label: String, onClose: () -> Unit) {
+        if (chipGroupActiveFilters.findViewWithTag<Chip>(tag) != null) return
+
+        val chip = Chip(this).apply {
+            this.tag = tag
+            text = label
+            isCloseIconVisible = true
+            isCheckable = false
+            isClickable = true
+            isFocusable = true
+            setEnsureMinTouchTargetSize(false)
+            setOnCloseIconClickListener {
+                onClose()
+                chipGroupActiveFilters.removeView(this)
+                selectAllChipInGroup()
+                submitList()
+            }
+        }
+
+        chipGroupActiveFilters.addView(chip)
+        chipGroupActiveFilters.visibility = View.VISIBLE
     }
 
     private fun selectAllChipInGroup() {
@@ -463,13 +495,13 @@ class MainActivity : AppCompatActivity() {
             if (key == "cleanup_snippet_days" || key == "cleanup_otp_hours") {
                 val snippetDays = sharedPreferences.getInt("cleanup_snippet_days", -1)
                 val otpHours = sharedPreferences.getInt("cleanup_otp_hours", -1)
-                snippetViewModel.performAutoCleanup(snippetDays, otpHours)
+                snippetViewModel.performAutoCleanup(this.findViewById(R.id.main), snippetDays, otpHours)
             }
         }
 
         val snippetDays = prefs.getInt("cleanup_snippet_days", -1)
         val otpHours = prefs.getInt("cleanup_otp_hours", -1)
-        snippetViewModel.performAutoCleanup(snippetDays, otpHours)
+        snippetViewModel.performAutoCleanup(this.findViewById(R.id.main), snippetDays, otpHours)
 
     }
 
@@ -533,20 +565,20 @@ class MainActivity : AppCompatActivity() {
         snippet: Snippet,
         onSave: (String) -> Unit
     ) {
-        val input = EditText(this).apply {
-            setText(snippet.text)
-            setSelection(snippet.text.length)
-            setHint("Edit snippet...")
-        }
+        val textInputView = View.inflate(this, R.layout.text_input, null)
+        val input = textInputView.findViewById<TextInputEditText>(R.id.textInput)
+        input.setText(snippet.text)
+        input.setSelection(input.text?.length ?: 0)
+        input.setHint("Edit snippet...")
 
         MaterialAlertDialogBuilder(this)
             .setTitle("Edit Snippet")
-            .setView(input)
+            .setView(textInputView)
             .setPositiveButton("Save") { _, _ ->
                 val newText = input.text.toString().trim()
                 if (newText.isNotBlank()) onSave(newText)
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton("Discard", null)
             .show()
     }
 
@@ -622,7 +654,6 @@ class MainActivity : AppCompatActivity() {
         popupMenu.setOnMenuItemClickListener { popupItem ->
             when (popupItem.itemId) {
                 R.id.action_save_as -> {
-                    Log.d("MainActivity", "Export All selected")
                     selectedSnippets = adapter.getAllSnippetsWithLabels()
                     saveShareBottomSheet(isShare = false, selectedSnippets)
                     true
@@ -651,7 +682,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.action_suggest_cleanup -> {
                     val toSuggest = snippetViewModel.getSnippetsForCleanup()
                     if (toSuggest.isEmpty()) {
-                        Toast.makeText(this, "No old snippets to clean!", Toast.LENGTH_SHORT).show()
+                        Snackbar.make(this.findViewById(R.id.main), "No old snippets to clean!", Snackbar.LENGTH_SHORT).show()
                     } else {
                         val texts = toSuggest.joinToString("\n\n") { it.snippet.text.take(100) }
 
@@ -735,7 +766,6 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     private fun saveShareBottomSheet(isShare: Boolean, snippetsWithLabels: List<SnippetWithLabels>) {
-        Log.d("MainActivity", "isShare: $isShare selectedSnippets: $snippetsWithLabels")
         val bottomSheet = SaveShareBottomSheet(isShare) { option ->
             when (option) {
                 SaveShareBottomSheet.OptionType.SHARE_TEXT -> {
@@ -749,7 +779,6 @@ class MainActivity : AppCompatActivity() {
                 SaveShareBottomSheet.OptionType.SHARE_CSV -> {
                     if (isShare) shareAsCsv(snippetsWithLabels) else {
                         saveInFolder(ExportFormat.CSV)
-                        Log.d("MainActivity", "CSV")
                     }
                 }
             }
@@ -758,7 +787,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveInFolder(format: ExportFormat) {
-        Log.d("MainActivity", "saveInFolder: $format")
         pendingExportFormat = format
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
             flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
@@ -802,9 +830,9 @@ class MainActivity : AppCompatActivity() {
                 writer?.write(saveData)
             }
 
-            Toast.makeText(this, "Exported to $fileName.txt", Toast.LENGTH_SHORT).show()
+            Snackbar.make(this.findViewById(R.id.main), "Exported to $fileName.txt", Snackbar.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(this, "Failed to create file", Toast.LENGTH_SHORT).show()
+            Snackbar.make(this.findViewById(R.id.main), "Failed to create file", Snackbar.LENGTH_SHORT).show()
         }
     }
 
@@ -845,9 +873,9 @@ class MainActivity : AppCompatActivity() {
             outputStream?.bufferedWriter().use { writer ->
                 writer?.write(jsonString)
             }
-            Toast.makeText(this, "Exported to $fileName.json", Toast.LENGTH_SHORT).show()
+            Snackbar.make(this.findViewById(R.id.main), "Exported to $fileName.json", Snackbar.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(this, "Failed to create file", Toast.LENGTH_SHORT).show()
+            Snackbar.make(this.findViewById(R.id.main), "Failed to create file", Snackbar.LENGTH_SHORT).show()
         }
     }
 
@@ -896,14 +924,14 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     writer.flush()
-                    Toast.makeText(this, "Snippets exported as CSV.", Toast.LENGTH_SHORT).show()
+                    Snackbar.make(this.findViewById(R.id.main), "Snippets exported as CSV.", Snackbar.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(this, "Failed to export as CSV.", Toast.LENGTH_SHORT).show()
+                Snackbar.make(this.findViewById(R.id.main), "Failed to export as CSV.", Snackbar.LENGTH_SHORT).show()
             }
         } else {
-            Toast.makeText(this, "Failed to create CSV file.", Toast.LENGTH_SHORT).show()
+            Snackbar.make(this.findViewById(R.id.main), "Failed to create CSV file.", Snackbar.LENGTH_SHORT).show()
         }
     }
 
@@ -1004,6 +1032,7 @@ class MainActivity : AppCompatActivity() {
             val inputStream = contentResolver.openInputStream(uri)
             val content = inputStream?.bufferedReader()?.readText() ?: return
 
+            var importedCount = 0
             lifecycleScope.launch {
                 val snippets = when {
                     fileName.endsWith(".json") -> parseJsonSnippets(content)
@@ -1012,28 +1041,23 @@ class MainActivity : AppCompatActivity() {
                     else -> emptyList<Triple<String, Long, List<String>>>()
                 }
 
-                var importedCount = 0
-
                 for ((text, timestamp, labels) in snippets) {
                     if (!snippetViewModel.doesSnippetExist(text)) {
                         snippetViewModel.insertSnippetWithLabels(text, timestamp, labels)
                         importedCount++
                     }
                 }
-
-                Toast.makeText(this@MainActivity, "Imported $importedCount new snippets", Toast.LENGTH_LONG).show()
             }
-
+            Snackbar.make(this.findViewById(R.id.main), "Imported $importedCount new snippets", Snackbar.LENGTH_SHORT).show()
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(this, "Failed to import snippets", Toast.LENGTH_SHORT).show()
+            Snackbar.make(this.findViewById(R.id.main), "Failed to import snippets", Snackbar.LENGTH_SHORT).show()
         }
     }
 
     private fun parseJsonSnippets(content: String): List<Triple<String, Long, List<String>>> {
         val result = mutableListOf<Triple<String, Long, List<String>>>()
         val jsonArray = JSONArray(content)
-        Log.d("JSON", jsonArray.toString())
 
         for (i in 0 until jsonArray.length()) {
             val obj = jsonArray.getJSONObject(i)
@@ -1042,7 +1066,6 @@ class MainActivity : AppCompatActivity() {
             val labels = obj.optJSONArray("labels")?.let { array ->
                 List(array.length()) { array.optString(it) }.filter { it.isNotBlank() }
             } ?: emptyList()
-            Log.d("JSON", "$text,$timestamp,$labels")
 
             if (text.isNotBlank()) {
                 result.add(Triple(text, timestamp, labels))

@@ -15,6 +15,8 @@ import com.example.snipit.model.Snippet
 import com.example.snipit.model.SnippetLabelRelation
 import com.example.snipit.ui.SettingsActivity.CloudSyncMode
 import com.example.snipit.ui.SettingsActivity.ThemeMode
+import com.example.snipit.utils.ActionUtils
+import com.example.snipit.utils.SyncScheduler
 import com.google.android.material.materialswitch.MaterialSwitch
 import org.json.JSONArray
 
@@ -28,12 +30,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _cleanupSnippetDays = MutableLiveData<Int>()
     private val _cloudSyncMode = MutableLiveData<CloudSyncMode>()
     val cloudSyncMode: LiveData<CloudSyncMode> get() = _cloudSyncMode
-    val cleanupSnippetDays: LiveData<Int> = _cleanupSnippetDays
     private val _cleanupOtpHours = MutableLiveData<Int>()
-    val cleanupOtpHours: LiveData<Int> = _cleanupOtpHours
     private val _themeMode = MutableLiveData<ThemeMode>()
     val themeMode: LiveData<ThemeMode> get() = _themeMode
     val repository = SnippetDatabase.getInstance(application).snippetDao()
+    private val _suggestedActionsEnabled = MutableLiveData<Boolean>()
+    val suggestedActionsEnabled: LiveData<Boolean> get() = _suggestedActionsEnabled
 
     init {
         _snipitServiceEnabled.value = prefs.getBoolean("snipit_service_enabled", true)
@@ -42,6 +44,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _themeMode.value = ThemeMode.fromValue(savedMode)
         val savedCloudSyncMode = prefs.getInt("cloud_sync_mode", CloudSyncMode.OFF.value)
         _cloudSyncMode.value = CloudSyncMode.fromValue(savedCloudSyncMode)
+        _suggestedActionsEnabled.value = prefs.getBoolean("suggested_actions_enabled", true)
     }
 
     fun setFloatingIconState(state: Boolean) {
@@ -75,9 +78,19 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         AppCompatDelegate.setDefaultNightMode(mode.value)
     }
 
+    fun getThemeMode(): ThemeMode {
+        val savedMode = prefs.getInt("theme_mode", ThemeMode.SYSTEM.value)
+        return ThemeMode.fromValue(savedMode)
+    }
+
     fun setCloudSyncMode(mode: CloudSyncMode) {
         prefs.edit { putInt("cloud_sync_mode", mode.value) }
         _cloudSyncMode.value = mode
+        if (mode == CloudSyncMode.GOOGLE_DRIVE) {
+            SyncScheduler.scheduleDriveBackup(getApplication())
+        } else {
+            SyncScheduler.cancelDriveBackup(getApplication())
+        }
     }
 
     fun setCleanupRules(snippetDays: Int, otpHours: Int) {
@@ -85,7 +98,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _cleanupOtpHours.value = otpHours
     }
 
-    suspend fun restoreSnippets(snippetArray: JSONArray) : Int {
+    suspend fun restoreSnippets(snippetArray: JSONArray, snippetViewModel: SnippetViewModel) : Int {
+        ActionUtils.clearActionCache()
         var count = 0
         for (i in 0 until snippetArray.length()) {
             val item = snippetArray.getJSONObject(i)
@@ -106,6 +120,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             }
             count ++
         }
+        snippetViewModel.refreshSnippets()
         return count
+    }
+
+    fun setSuggestedActionsEnabled(enabled: Boolean) {
+        prefs.edit { putBoolean("suggested_actions_enabled", enabled) }
+        _suggestedActionsEnabled.value = enabled
     }
 }

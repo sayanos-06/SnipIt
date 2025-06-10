@@ -37,10 +37,8 @@ class DriveUploadWorker(
         ).setApplicationName("SnipIt").build()
 
         return try {
-            // ⚙️ Export and upload logic goes here
             val exportHelper = ExportHelper(applicationContext)
             exportHelper.exportSnippetsToDrive(driveService)
-            Log.d("DriveWorker", "Backup uploaded")
             Result.success()
         } catch (e: Exception) {
             Log.e("DriveWorker", "Upload failed", e)

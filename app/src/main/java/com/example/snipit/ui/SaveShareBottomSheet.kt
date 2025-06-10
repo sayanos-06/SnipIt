@@ -18,10 +18,6 @@ class SaveShareBottomSheet(
         SHARE_TEXT, SHARE_JSON, SHARE_CSV
     }
 
-    companion object {
-        const val TAG = "ModalBottomSheet"
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?

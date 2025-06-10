@@ -42,4 +42,10 @@
     <string name="cloud_sync">Cloud Sync</string>
     <string name="off">OFF</string>
     <string name="disabled">Disabled</string>
+    <string name="choose_appearance">Choose Appearance</string>
+    <string name="last_synced_never">Last synced: Never</string>
+    <string name="backup_now">Backup Now</string>
+    <string name="no_snippets_added_yet_ncopy_one_to_get_started">No snippets added yet.\nCopy one to get started!</string>
+    <string name="suggested_actions">Suggested Actions</string>
+    <string name="enable_ai_or_regex_based_actions">Enable AI or Regex based actions</string>
 </resources>

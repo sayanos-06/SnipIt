@@ -6,22 +6,15 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
-import android.util.Log
 import android.util.TypedValue
 import android.view.*
-import android.view.ViewGroup.MarginLayoutParams
 import android.widget.*
 import androidx.appcompat.widget.PopupMenu
-import androidx.core.graphics.drawable.DrawableCompat
-import androidx.core.graphics.toColorInt
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.snipit.R
-import com.example.snipit.model.Label
 import com.example.snipit.model.Snippet
 import com.example.snipit.model.SnippetWithLabels
 import com.example.snipit.ui.LabelPickerBottomSheet
@@ -34,10 +27,8 @@ import com.google.android.material.button.MaterialSplitButton
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.snackbar.Snackbar
-import androidx.core.graphics.createBitmap
+import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.drawable.toDrawable
-import androidx.core.view.marginEnd
-import androidx.core.view.updateLayoutParams
 import com.example.snipit.utils.ActionUtils.toBitmapDrawable
 
 class SnippetAdapter(
@@ -76,11 +67,10 @@ class SnippetAdapter(
         val snippet = item.snippet
         val labels = item.labels
         val isSelected = selectedSnippets.contains(snippet)
-        val actions = ActionUtils.getSuggestedActions(context, snippet.text)
 
         holder.itemView.alpha = if (isSelected) 0.5f else 1.0f
         holder.text.text = snippet.text
-        holder.time.text = TimeUtils.getRelativeTime(snippet.timestamp, context)
+        holder.time.text = TimeUtils.getRelativeTime(snippet.timestamp)
 
         holder.pin.setOnCheckedChangeListener(null)
         holder.pin.isChecked = snippet.isPinned
@@ -110,61 +100,65 @@ class SnippetAdapter(
             holder.chipGroup.visibility = View.GONE
         }
 
-        if(actions.isNotEmpty()) {
-            holder.splitBtnLayout.visibility = View.VISIBLE
-            val layout = holder.splitBtnLayout
-            layout.removeAllViews()
-            val size = TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, 48f, context.resources.displayMetrics
-            ).toInt()
-
-            val primary = actions.first()
-            val primaryIcon = primary.icon?.mutate()?.toBitmapDrawable(context, size)
-            val primaryButton = MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-                text = primary.label
-                if (primaryIcon != null) {
-                    icon = primaryIcon
-                    iconTint = null
-                    iconSize = TypedValue.applyDimension(
-                        TypedValue.COMPLEX_UNIT_DIP, 44f, context.resources.displayMetrics
+        ActionUtils.getSuggestedActions(context, snippet.text, snippet.id) { actions ->
+            (context as MainActivity).runOnUiThread {
+                if(actions.isNotEmpty()) {
+                    holder.splitBtnLayout.visibility = View.VISIBLE
+                    val layout = holder.splitBtnLayout
+                    layout.removeAllViews()
+                    val size = TypedValue.applyDimension(
+                        TypedValue.COMPLEX_UNIT_DIP, 48f, context.resources.displayMetrics
                     ).toInt()
-                    setPadding(0, 0, 16.dpToPx(context), 0)
-                }
-                else {
-                    icon = context.getDrawable(R.drawable.public_24px)
-                    setPadding(12.dpToPx(context), 0, 16.dpToPx(context), 0)
-                }
-                iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
-                setOnClickListener { context.startActivity(primary.intent) }
-            }
-            layout.addView(primaryButton)
 
-            if (actions.size > 1) {
-                val menuButton = MaterialButton(context, null, com.google.android.material.R.attr.materialIconButtonOutlinedStyle).apply {
-                    icon = context.getDrawable(com.google.android.material.R.drawable.m3_split_button_chevron_avd)
-                    setOnClickListener { button ->
-                        val popupMenu = PopupMenu(context, button)
-                        popupMenu.setForceShowIcon(true)
-                        actions.drop(1).forEachIndexed { index, action ->
-                            popupMenu.menu.add(0, index, index, action.label).apply {
-                                icon = action.icon
+                    val primary = actions.first()
+                    val primaryIcon = primary.icon?.mutate()?.toBitmapDrawable(context, size)
+                    val primaryButton = MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                        text = primary.label
+                        if (primaryIcon != null) {
+                            icon = primaryIcon
+                            iconTint = null
+                            iconSize = TypedValue.applyDimension(
+                                TypedValue.COMPLEX_UNIT_DIP, 44f, context.resources.displayMetrics
+                            ).toInt()
+                            setPadding(0, 0, 16.dpToPx(context), 0)
+                        }
+                        else {
+                            icon = context.getDrawable(R.drawable.public_24px)
+                            setPadding(12.dpToPx(context), 0, 16.dpToPx(context), 0)
+                        }
+                        iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
+                        setOnClickListener { context.startActivity(primary.intent) }
+                    }
+                    layout.addView(primaryButton)
+
+                    if (actions.size > 1) {
+                        val menuButton = MaterialButton(context, null, com.google.android.material.R.attr.materialIconButtonOutlinedStyle).apply {
+                            icon = context.getDrawable(com.google.android.material.R.drawable.m3_split_button_chevron_avd)
+                            setOnClickListener { button ->
+                                val popupMenu = PopupMenu(context, button)
+                                popupMenu.setForceShowIcon(true)
+                                actions.drop(1).forEachIndexed { index, action ->
+                                    popupMenu.menu.add(0, index, index, action.label).apply {
+                                        icon = action.icon.toScaledDrawable(context, 48f)
+                                    }
+                                }
+                                popupMenu.setOnMenuItemClickListener {
+                                    context.startActivity(actions[it.itemId + 1].intent)
+                                    true
+                                }
+                                popupMenu.setOnDismissListener {
+                                    (button as MaterialButton).isChecked = false
+                                }
+                                popupMenu.show()
                             }
                         }
-                        popupMenu.setOnMenuItemClickListener {
-                            context.startActivity(actions[it.itemId + 1].intent)
-                            true
-                        }
-                        popupMenu.setOnDismissListener {
-                            (button as MaterialButton).isChecked = false
-                        }
-                        popupMenu.show()
+                        layout.addView(menuButton)
                     }
                 }
-                layout.addView(menuButton)
+                else {
+                    holder.splitBtnLayout.visibility = View.GONE
+                }
             }
-        }
-        else {
-            holder.splitBtnLayout.visibility = View.GONE
         }
 
         holder.btnCopy.setOnClickListener {
@@ -277,4 +271,24 @@ class SnippetAdapter(
             TypedValue.COMPLEX_UNIT_DIP, this.toFloat(), context.resources.displayMetrics
         ).toInt()
     }
+
+    fun refreshVisibleItems() {
+        notifyItemRangeChanged(0, itemCount)
+    }
+
+    private fun Drawable?.toScaledDrawable(
+        context: Context,
+        sizeDp: Float
+    ): Drawable? {
+        val sizePx = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, sizeDp, context.resources.displayMetrics
+        ).toInt()
+
+        val bitmap = this?.toBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+        return bitmap?.toDrawable(context.resources).apply {
+            this!!.setBounds(0, 0, sizePx, sizePx)
+        }
+    }
 }
+
+

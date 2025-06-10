@@ -5,6 +5,11 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
+    <com.google.android.material.bottomsheet.BottomSheetDragHandleView
+        android:id="@+id/drag_handle"
+        android:layout_width="match_parent"
+        android:layout_height="30dp"/>
+
     <TextView
         android:id="@+id/tvCloudTitle"
         android:text="@string/choose_cloud_sync_option"
@@ -15,16 +20,32 @@
         android:layout_height="wrap_content" />
 
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnDisabled"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/disabled"
+        android:id="@+id/btnGoogleDrive"
+        android:layout_width="300dp"
+        android:layout_height="50dp"
+        android:layout_gravity="center_horizontal"
+        style="@style/Widget.Material3.Button"
+        android:textSize="16sp"
+        android:text="@string/google_drive"
         android:icon="@drawable/add_to_drive_24px" />
 
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnGoogleDrive"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/google_drive"
+        android:id="@+id/btnSnipitCloud"
+        android:layout_width="300dp"
+        android:layout_height="50dp"
+        android:layout_gravity="center_horizontal"
+        style="@style/Widget.Material3.Button.TonalButton"
+        android:textSize="16sp"
+        android:text="@string/snipit_cloud_database"
+        android:icon="@drawable/add_to_drive_24px" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnDisabled"
+        android:layout_width="300dp"
+        android:layout_height="50dp"
+        android:layout_gravity="center_horizontal"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:textSize="16sp"
+        android:text="@string/disabled"
         android:icon="@drawable/add_to_drive_24px" />
 </LinearLayout>

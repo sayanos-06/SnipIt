@@ -6,7 +6,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.EditText
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -16,9 +15,9 @@ import com.example.snipit.model.Label
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class LabelPickerBottomSheet(
@@ -36,7 +35,7 @@ class LabelPickerBottomSheet(
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val recyclerView = view.findViewById<RecyclerView>(R.id.labelRecyclerView)
-        val editLabelName = view.findViewById<EditText>(R.id.editLabelName)
+        val editLabelName = view.findViewById<TextInputEditText>(R.id.editLabelName)
         val btnAddLabel = view.findViewById<Button>(R.id.btnAddLabel)
 
         adapter = LabelPickerAdapter (
@@ -60,7 +59,7 @@ class LabelPickerBottomSheet(
                 val colorHex = getRandomColorHex()
                 if (name.isNotEmpty()) {
                     snippetViewModel.insertLabel(Label(name = name, color = colorHex)) {
-                        editLabelName.text.clear()
+                        editLabelName.text?.clear()
                     }
                 }
             }
@@ -87,25 +86,26 @@ class LabelPickerBottomSheet(
     }
 
     private fun editDeleteLabelDialog(label: Label) {
-        val input = EditText(requireContext()).apply {
-            setText(label.name)
-        }
+        val textInputView = View.inflate(this.context, R.layout.text_input, null)
+        val input = textInputView.findViewById<TextInputEditText>(R.id.textInput)
+        input?.setText(label.name)
 
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Edit or Delete Label")
-            .setView(input)
+            .setTitle("Edit or Delete Tag")
+            .setView(textInputView)
             .setPositiveButton("Rename") { _, _ ->
                 lifecycleScope.launch {
-                    val newName = input.text.toString().trim()
+
+                    val newName = input?.text.toString().trim()
                     if (newName.isNotEmpty()) {
-                        snippetViewModel.insertLabel(label.copy(name = newName))
+                        snippetViewModel.updateLabel(label.copy(name = newName))
                     }
                 }
             }
             .setNegativeButton("Delete") { _, _ ->
                 lifecycleScope.launch {
                     snippetViewModel.deleteLabel(label)
-                    Snackbar.make(requireView(), "Label deleted", Snackbar.LENGTH_SHORT)
+                    Snackbar.make(requireView(), "Tag deleted", Snackbar.LENGTH_SHORT)
                         .setAction("Undo") {
                             snippetViewModel.insertLabel(label)
                         }

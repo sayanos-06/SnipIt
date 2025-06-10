@@ -3,10 +3,14 @@ package com.example.snipit.ui
 import android.app.Application
 import android.content.Context
 import android.util.Log
+import android.view.View
 import androidx.lifecycle.*
+import com.example.snipit.ai.DucklingClient
 import com.example.snipit.data.SnippetDatabase
 import com.example.snipit.model.*
+import com.example.snipit.utils.ActionUtils
 import com.example.snipit.utils.LabelSuggester
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.*
 
 class SnippetViewModel(application: Application) : AndroidViewModel(application) {
@@ -45,13 +49,14 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
 
     fun refreshSnippets() {
         viewModelScope.launch {
-            val updated = repository.getAllSnippetsWithLabelsDirect().toList()
-            _snippetsWithLabels.postValue(updated)
+            val allSnippets = repository.getAllSnippetsWithLabelsDirect()
+            _snippetsWithLabels.postValue(allSnippets)
         }
     }
 
     fun insertOrUpdateSnippet(text: String) {
         viewModelScope.launch {
+            ActionUtils.clearActionCache()
             val snippet: Snippet
             val existing = repository.getSnippetByText(text)
             val now = System.currentTimeMillis()
@@ -65,28 +70,74 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
                 newSnippet.copy(id = id.toInt())
             }
 
-            val suggestedLabels = LabelSuggester.suggestLabels(text)
-            val existingLabels = repository.getAllLabelsDirect().toMutableList()
-            val labelMap = existingLabels.associateBy { it.name }.toMutableMap()
+            val suggestedLabels = LabelSuggester.suggestLabels(text).toMutableList()
+            DucklingClient.parse(text,
+                onSuccess = { results ->
+                    viewModelScope.launch {
+                        for (r in results) {
+                            val label = when (r.dim) {
+                                "time" -> "Event"
+                                else -> continue
+                            }
+                            if (label !in suggestedLabels) {
+                                suggestedLabels.add(label)
+                            }
+                        }
+                        val existingLabels = repository.getAllLabelsDirect().toMutableList()
+                        val labelMap = existingLabels.associateBy { it.name }.toMutableMap()
 
-            val matchedLabelIds = mutableListOf<Int>()
-            for (name in suggestedLabels) {
-                val label = labelMap[name]
-                if (label != null) {
-                    matchedLabelIds.add(label.id)
-                } else {
-                    val newLabel = Label(name = name)
-                    val newId = repository.insertLabelDirect(newLabel)
-                    matchedLabelIds.add(newId.toInt())
-                    labelMap[name] = newLabel.copy(id = newId.toInt())
+                        val matchedLabelIds = mutableListOf<Int>()
+                        for (name in suggestedLabels) {
+                            val label = labelMap[name]
+                            if (label != null) {
+                                matchedLabelIds.add(label.id)
+                            } else {
+                                val newLabel = Label(name = name)
+                                val newId = repository.insertLabelDirect(newLabel)
+                                matchedLabelIds.add(newId.toInt())
+                                labelMap[name] = newLabel.copy(id = newId.toInt())
+                            }
+                        }
+
+                        matchedLabelIds.forEach { labelId ->
+                            repository.insertSnippetLabelRelation(SnippetLabelRelation(snippet.id, labelId))
+                        }
+
+                        refreshSnippets()
+                    }
+                },
+                onError = { error ->
+                    Log.e("Duckling", "Parse error: ${error.message}")
+                    viewModelScope.launch {
+                        val existingLabels = repository.getAllLabelsDirect().toMutableList()
+                        val labelMap = existingLabels.associateBy { it.name }.toMutableMap()
+
+                        val matchedLabelIds = mutableListOf<Int>()
+                        for (name in suggestedLabels) {
+                            val label = labelMap[name]
+                            if (label != null) {
+                                matchedLabelIds.add(label.id)
+                            } else {
+                                val newLabel = Label(name = name)
+                                val newId = repository.insertLabelDirect(newLabel)
+                                matchedLabelIds.add(newId.toInt())
+                                labelMap[name] = newLabel.copy(id = newId.toInt())
+                            }
+                        }
+
+                        matchedLabelIds.forEach { labelId ->
+                            repository.insertSnippetLabelRelation(
+                                SnippetLabelRelation(
+                                    snippet.id,
+                                    labelId
+                                )
+                            )
+                        }
+
+                        refreshSnippets()
+                    }
                 }
-            }
-
-            matchedLabelIds.forEach { labelId ->
-                repository.insertSnippetLabelRelation(SnippetLabelRelation(snippet.id, labelId))
-            }
-
-            refreshSnippets()
+            )
         }
     }
 
@@ -97,6 +148,7 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
 
     fun insertSnippetWithLabels(text: String, timestamp: Long, labels: List<String>) {
         viewModelScope.launch {
+            ActionUtils.clearActionCache()
             val snippet = Snippet(text = text.trim(), timestamp = timestamp)
             val snippetId = repository.insert(snippet).toInt()
             val existingLabels = repository.getAllLabelsDirect()
@@ -127,6 +179,7 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
 
     fun restoreSnippetWithLabels(snippet: Snippet, labelIds: List<Int>) {
         viewModelScope.launch {
+            ActionUtils.clearActionCache()
             repository.insert(snippet)
             repository.clearLabelsForSnippet(snippet.id)
             labelIds.forEach { id ->
@@ -156,6 +209,13 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
                 repository.insertLabel(label)
             }
             onComplete(id)
+            refreshSnippets()
+        }
+    }
+
+    fun updateLabel(updatedLabel: Label) {
+        viewModelScope.launch {
+            repository.updateLabel(updatedLabel)
             refreshSnippets()
         }
     }
@@ -213,14 +273,14 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
     fun getSnippetsForCleanup(): List<SnippetWithLabels> {
         val now = System.currentTimeMillis()
         return snippetsWithLabels.value.orEmpty().filter {
-            val ageScore = (now - it.snippet.timestamp) / (1000 * 60 * 60 * 24) // days old
+            val ageScore = (now - it.snippet.timestamp) / (1000 * 60 * 60 * 24)
             val useScore = it.snippet.accessCount
             val isPinned = it.snippet.isPinned
-            !isPinned && (ageScore > 7 && useScore < 2) // Older than a week and rarely used
+            !isPinned && (ageScore > 7 && useScore < 2)
         }
     }
 
-    fun performAutoCleanup(snippetDays: Int, otpHours: Int) {
+    fun performAutoCleanup(view: View, snippetDays: Int, otpHours: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             var deletedCount = 0
 
@@ -233,8 +293,10 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
             }
 
             if (deletedCount > 0) {
-                Log.d("SnippetCleanup", "Deleted $deletedCount old/OTP snippets")
-                refreshSnippets()
+                withContext(Dispatchers.Main) {
+                    Snackbar.make(view, "Deleted $deletedCount snippets", Snackbar.LENGTH_SHORT).show()
+                    refreshSnippets()
+                }
             }
         }
     }

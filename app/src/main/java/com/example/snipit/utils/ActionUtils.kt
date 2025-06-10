@@ -3,31 +3,43 @@ package com.example.snipit.utils
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Canvas
 import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.LayerDrawable
+import android.os.Handler
+import android.os.Looper
 import android.provider.CalendarContract
 import android.util.Log
-import com.example.snipit.data.SuggestedAction
+import com.example.snipit.model.SuggestedAction
 import androidx.core.net.toUri
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toDrawable
-import com.example.snipit.R
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.example.snipit.ai.DucklingClient
+import okhttp3.internal.http2.Http2Reader
 import java.net.HttpURLConnection
 import java.net.URL
 
 object ActionUtils {
-    @SuppressLint("UseCompatLoadingForDrawables")
-    fun getSuggestedActions(context: Context, text: String): List<SuggestedAction> {
-        val actions = mutableListOf<SuggestedAction>()
 
+    private val actionCache = mutableMapOf<Int, List<SuggestedAction>>()
+
+    @SuppressLint("UseCompatLoadingForDrawables")
+    fun getSuggestedActions(context: Context, text: String, id: Int, onComplete: (List<SuggestedAction>) -> Unit) {
+        val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val enabled = prefs.getBoolean("suggested_actions_enabled", true)
+        if (!enabled) {
+            onComplete(listOf())
+            return
+        }
+
+        actionCache[id]?.let {
+            onComplete(it)
+            return
+        }
+
+        val actions = mutableListOf<SuggestedAction>()
         val packageManager = context.packageManager
 
         val fullUrlRegex1 = Regex("""https?://\S+""")
@@ -38,13 +50,10 @@ object ActionUtils {
             else if (fullUrlRegex2.containsMatchIn(text)) fullUrlRegex2.find(text)
             else if (fallbackUrlRegex.containsMatchIn(text)) fallbackUrlRegex.find(text)
             else null
-
         match?.value.let { rawUrl ->
             val fullUrl = rawUrl?.startsWith("http")?.let { if (!it) "https://$rawUrl" else rawUrl }
-            fullUrl?.replace("\n","")
             if (fullUrl != null) {
                 try {
-                    if (isUrlValid(fullUrl)) return@let
                     val intent = Intent(Intent.ACTION_VIEW, fullUrl.toUri())
                     val resolveInfo = packageManager.resolveActivity(intent, 0)
                     if (resolveInfo != null) {
@@ -54,26 +63,20 @@ object ActionUtils {
                                 packageManager.getApplicationInfo(packageName, 0).let {
                                     packageManager.getApplicationIcon(it)
                                 }
-                            }
-                            else {
-                                Log.d("ActionUtils", "It's chrome")
+                            } else {
                                 null
                             }
-                        } catch (e: Exception) {
-                            Log.d("ActionUtils", "Failed to get icon for package: $packageName Error: ${e.localizedMessage}")
+                        } catch (_: Exception) {
                             null
                         }
                         actions.add(SuggestedAction("Open Link", icon, intent))
-                    } else {
-                        Log.e("ActionUtils", "No activity found to handle intent: $intent")
                     }
-                } catch (e: Exception) {
-                    Log.e("ActionUtils", "Failed to create intent: ${e.localizedMessage}")
-                }
+                } catch (_: Exception) { }
             }
         }
 
-        Regex("""\+?[0-9][0-9()\-\s]{7,}""").find(text)?.value?.let { phone ->
+
+        Regex("""\+?[0-9][0-9()\-\s]{10,}""").find(text)?.value?.let { phone ->
             val intent = Intent(Intent.ACTION_DIAL, "tel:$phone".toUri())
             val icon = intent.resolveActivity(packageManager)?.let {
                 packageManager.getApplicationIcon(it.packageName)
@@ -89,48 +92,40 @@ object ActionUtils {
             actions.add(SuggestedAction("Send Email", icon, intent))
         }
 
-        if (text.contains("meeting", ignoreCase = true) || Regex("""\d{1,2}/\d{1,2}/\d{2,4}""").containsMatchIn(text)) {
-            val intent = Intent(Intent.ACTION_INSERT).apply {
-                data = CalendarContract.Events.CONTENT_URI
-                putExtra(CalendarContract.Events.TITLE, "New Event")
-                putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, System.currentTimeMillis())
-            }
-            val icon = intent.resolveActivity(packageManager)?.let {
-                packageManager.getApplicationIcon(it.packageName)
-            }
-            actions.add(SuggestedAction("Add to Calendar", icon, intent))
-        }
-
-        return actions
-    }
-
-    private fun isUrlValid(url: String): Boolean {
         try {
-            val connection = URL(url).openConnection() as HttpURLConnection
-            connection.requestMethod = "HEAD"
-            connection.connectTimeout = 3000
-            connection.readTimeout = 3000
-            connection.instanceFollowRedirects = true
-            connection.connect()
-            val code = connection.responseCode
-            connection.disconnect()
-            if (code in 200..399) return true
-        } catch (_: Exception) {
-            try {
-                val connection = URL(url).openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.connectTimeout = 3000
-                connection.readTimeout = 3000
-                connection.instanceFollowRedirects = true
-                connection.connect()
-                val code = connection.responseCode
-                connection.disconnect()
-                return code in 200..399
-            } catch (_: Exception) {
-                return false
-            }
+            DucklingClient.parse(text,
+                onSuccess = { results ->
+                    for (r in results) {
+                        if (r.dim == "time") {
+                            val detectedEventTime = r.value
+                            val offsetDateTime = java.time.OffsetDateTime.parse(detectedEventTime)
+                            val startMillis = offsetDateTime.toInstant().toEpochMilli()
+
+                            val intent = Intent(Intent.ACTION_INSERT).apply {
+                                data = CalendarContract.Events.CONTENT_URI
+                                putExtra(CalendarContract.Events.TITLE, "New Event")
+                                putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, startMillis)
+                            }
+
+                            val icon = intent.resolveActivity(packageManager)?.let {
+                                packageManager.getApplicationIcon(it.packageName)
+                            }
+                            actions.add(SuggestedAction("Add Event", icon, intent))
+                        }
+                    }
+
+                    onComplete(actions)
+                },
+                onError = { error ->
+                    onComplete(actions)
+                    Log.e("Duckling", "Parse error: ${error.message}")
+                }
+            )
+        } catch (e: Error) {
+            onComplete(actions)
+            Log.e("ActionUtils", "Error: ${e.message}")
         }
-        return false
+        actionCache[id] = actions
     }
 
     fun Drawable.toBitmapDrawable(context: Context, sizePx: Int): BitmapDrawable {
@@ -145,5 +140,9 @@ object ActionUtils {
             this.draw(canvas)
         }
         return bitmap.toDrawable(context.resources)
+    }
+
+    fun clearActionCache() {
+        actionCache.clear()
     }
 }

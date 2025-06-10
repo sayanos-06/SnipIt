@@ -114,19 +114,26 @@ class FloatingTrayService : Service() {
             ): Boolean = false
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val position = viewHolder.adapterPosition
-                val adapter = recyclerView.adapter as TraySnippetAdapter
-                val snippet = adapter.currentList[position]
+                if (direction == ItemTouchHelper.RIGHT) {
+                    val position = viewHolder.adapterPosition
+                    val adapter = recyclerView.adapter as TraySnippetAdapter
+                    val snippet = adapter.currentList[position]
 
-                CoroutineScope(Dispatchers.IO).launch {
-                    SnippetDatabase.getInstance(applicationContext).snippetDao()
-                        .deleteSnippet(snippet)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        SnippetDatabase.getInstance(applicationContext).snippetDao()
+                            .deleteSnippet(snippet)
+                    }
+
+                    val updatedList = adapter.currentList.toMutableList().apply { removeAt(position) }
+                    adapter.submitSortedList(updatedList)
+
+                    Toast.makeText(applicationContext, "Deleted", Toast.LENGTH_SHORT).show()
                 }
 
-                val updatedList = adapter.currentList.toMutableList().apply { removeAt(position) }
-                adapter.submitSortedList(updatedList)
+            }
 
-                Toast.makeText(applicationContext, "Deleted", Toast.LENGTH_SHORT).show()
+            override fun getSwipeThreshold(viewHolder: RecyclerView.ViewHolder): Float {
+                return 0.7f
             }
 
             override fun onChildDraw(
