@@ -17,9 +17,9 @@ SnipIt is an intelligent clipboard manager for Android that helps you capture, o
   <img src="screenshots/Screenshot_4.png" width="22%" />
 </p>
 <p align="center">
-  <img src="screenshots/Screenshot_5.png" width="22%" />
+  <img src="screenshots/Screenshot_5.jpg" width="22%" />
   <img src="screenshots/Screenshot_6.png" width="22%" />
-  <img src="screenshots/Screenshot_7.png" width="22%" />
+  <img src="screenshots/Screenshot_7.jpg" width="22%" />
   <img src="screenshots/Screenshot_8.png" width="22%" />
 </p>
 
@@ -69,7 +69,7 @@ SnipIt is an intelligent clipboard manager for Android that helps you capture, o
 
 - 🔍 **Advanced Search and Filter**
   - Keyword-based and label-based filtering
-  - Supports fuzzy matching and real-time highlighting
+  - Real-time highlighted Search
 
 - 🧠 **Suggested Actions**
   - Regex + ML-powered contextual suggestions:
