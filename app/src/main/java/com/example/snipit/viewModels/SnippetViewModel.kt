@@ -1,4 +1,4 @@
-package com.example.snipit.ui
+package com.example.snipit.viewModels
 
 import android.app.Application
 import android.content.Context
@@ -15,10 +15,11 @@ import kotlinx.coroutines.*
 
 class SnippetViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = SnippetDatabase.getInstance(application).snippetDao()
+    private val snippetRepo = SnippetDatabase.getInstance(application).snippetDao()
+    private val binRepo = SnippetDatabase.getInstance(application).binDao()
     private val _snippetsWithLabels = MutableLiveData<List<SnippetWithLabels>>()
     val snippetsWithLabels: LiveData<List<SnippetWithLabels>> get() = _snippetsWithLabels
-    val allLabels: LiveData<List<Label>> = repository.getAllLabels()
+    val allLabels: LiveData<List<Label>> = snippetRepo.getAllLabels()
     private val _selectedSnippets = MutableLiveData<Set<Snippet>>(emptySet())
     val selectedSnippets: LiveData<Set<Snippet>> = _selectedSnippets
     private val _previousSelectedSnippets = MutableLiveData<Set<Snippet>>(emptySet())
@@ -49,7 +50,7 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
 
     fun refreshSnippets() {
         viewModelScope.launch {
-            val allSnippets = repository.getAllSnippetsWithLabelsDirect()
+            val allSnippets = snippetRepo.getAllSnippetsWithLabelsDirect()
             _snippetsWithLabels.postValue(allSnippets)
         }
     }
@@ -58,15 +59,15 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             ActionUtils.clearActionCache()
             val snippet: Snippet
-            val existing = repository.getSnippetByText(text)
+            val existing = snippetRepo.getSnippetByText(text)
             val now = System.currentTimeMillis()
             snippet = if (existing != null) {
                 val updated = existing.copy(timestamp = now)
-                val id = repository.updateSnippet(updated)
+                val id = snippetRepo.updateSnippet(updated)
                 updated.copy(id = id)
             } else {
                 val newSnippet = Snippet(text = text, timestamp = now)
-                val id = repository.insert(newSnippet)
+                val id = snippetRepo.insert(newSnippet)
                 newSnippet.copy(id = id.toInt())
             }
 
@@ -83,7 +84,7 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
                                 suggestedLabels.add(label)
                             }
                         }
-                        val existingLabels = repository.getAllLabelsDirect().toMutableList()
+                        val existingLabels = snippetRepo.getAllLabelsDirect().toMutableList()
                         val labelMap = existingLabels.associateBy { it.name }.toMutableMap()
 
                         val matchedLabelIds = mutableListOf<Int>()
@@ -93,14 +94,14 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
                                 matchedLabelIds.add(label.id)
                             } else {
                                 val newLabel = Label(name = name)
-                                val newId = repository.insertLabelDirect(newLabel)
+                                val newId = snippetRepo.insertLabelDirect(newLabel)
                                 matchedLabelIds.add(newId.toInt())
                                 labelMap[name] = newLabel.copy(id = newId.toInt())
                             }
                         }
 
                         matchedLabelIds.forEach { labelId ->
-                            repository.insertSnippetLabelRelation(SnippetLabelRelation(snippet.id, labelId))
+                            snippetRepo.insertSnippetLabelRelation(SnippetLabelRelation(snippet.id, labelId))
                         }
 
                         refreshSnippets()
@@ -109,7 +110,7 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
                 onError = { error ->
                     Log.e("Duckling", "Parse error: ${error.message}")
                     viewModelScope.launch {
-                        val existingLabels = repository.getAllLabelsDirect().toMutableList()
+                        val existingLabels = snippetRepo.getAllLabelsDirect().toMutableList()
                         val labelMap = existingLabels.associateBy { it.name }.toMutableMap()
 
                         val matchedLabelIds = mutableListOf<Int>()
@@ -119,14 +120,14 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
                                 matchedLabelIds.add(label.id)
                             } else {
                                 val newLabel = Label(name = name)
-                                val newId = repository.insertLabelDirect(newLabel)
+                                val newId = snippetRepo.insertLabelDirect(newLabel)
                                 matchedLabelIds.add(newId.toInt())
                                 labelMap[name] = newLabel.copy(id = newId.toInt())
                             }
                         }
 
                         matchedLabelIds.forEach { labelId ->
-                            repository.insertSnippetLabelRelation(
+                            snippetRepo.insertSnippetLabelRelation(
                                 SnippetLabelRelation(
                                     snippet.id,
                                     labelId
@@ -142,7 +143,7 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
     }
 
     suspend fun doesSnippetExist(text: String): Boolean {
-        val existing = repository.getSnippetByText(text.trim())
+        val existing = snippetRepo.getSnippetByText(text.trim())
         return existing != null
     }
 
@@ -150,8 +151,8 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             ActionUtils.clearActionCache()
             val snippet = Snippet(text = text.trim(), timestamp = timestamp)
-            val snippetId = repository.insert(snippet).toInt()
-            val existingLabels = repository.getAllLabelsDirect()
+            val snippetId = snippetRepo.insert(snippet).toInt()
+            val existingLabels = snippetRepo.getAllLabelsDirect()
             val labelMap = existingLabels.associateBy { it.name }.toMutableMap()
             val labelIds = mutableListOf<Int>()
             for (name in labels.distinct()) {
@@ -159,54 +160,62 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
                 val labelId = if (existingLabel != null) {
                     existingLabel.id
                 } else {
-                    val newId = repository.insertLabelDirect(Label(name = name))
+                    val newId = snippetRepo.insertLabelDirect(Label(name = name))
                     labelMap[name] = Label(id = newId.toInt(), name = name)
                     newId.toInt()
                 }
                 labelIds.add(labelId)
             }
             labelIds.forEach { labelId ->
-                repository.insertSnippetLabelRelation(SnippetLabelRelation(snippetId, labelId))
+                snippetRepo.insertSnippetLabelRelation(SnippetLabelRelation(snippetId, labelId))
             }
             refreshSnippets()
         }
     }
 
     fun deleteSnippet(snippet: Snippet) = viewModelScope.launch {
-        repository.deleteSnippet(snippet)
+        snippetRepo.deleteSnippet(snippet)
+        val binItem = Bin(
+            originalId = snippet.id,
+            text = snippet.text,
+            timestamp = snippet.timestamp,
+            deletedAt = System.currentTimeMillis()
+        )
+        binRepo.insert(binItem)
         refreshSnippets()
     }
 
     fun restoreSnippetWithLabels(snippet: Snippet, labelIds: List<Int>) {
         viewModelScope.launch {
             ActionUtils.clearActionCache()
-            repository.insert(snippet)
-            repository.clearLabelsForSnippet(snippet.id)
+            binRepo.deleteBySnippetId(snippet.id)
+            snippetRepo.insert(snippet)
+            snippetRepo.clearLabelsForSnippet(snippet.id)
             labelIds.forEach { id ->
-                repository.insertSnippetLabelRelation(SnippetLabelRelation(snippet.id, id))
+                snippetRepo.insertSnippetLabelRelation(SnippetLabelRelation(snippet.id, id))
             }
             refreshSnippets()
         }
     }
 
     fun updateSnippet(snippet: Snippet) = viewModelScope.launch {
-        repository.updateSnippet(snippet)
+        snippetRepo.updateSnippet(snippet)
         refreshSnippets()
     }
 
     fun updatePinStatus(id: Int, isPinned: Boolean) = viewModelScope.launch {
-        repository.updatePinStatus(id, isPinned)
+        snippetRepo.updatePinStatus(id, isPinned)
         refreshSnippets()
     }
 
     suspend fun getLabelsForSnippet(snippetId: Int): List<Label> {
-        return repository.getSnippetWithLabelsDirect(snippetId).labels
+        return snippetRepo.getSnippetWithLabelsDirect(snippetId).labels
     }
 
     fun insertLabel(label: Label, onComplete: (Long) -> Unit = {}) {
         viewModelScope.launch {
             val id = withContext(Dispatchers.IO) {
-                repository.insertLabel(label)
+                snippetRepo.insertLabel(label)
             }
             onComplete(id)
             refreshSnippets()
@@ -215,16 +224,16 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateLabel(updatedLabel: Label) {
         viewModelScope.launch {
-            repository.updateLabel(updatedLabel)
+            snippetRepo.updateLabel(updatedLabel)
             refreshSnippets()
         }
     }
 
     fun assignLabelsToSnippet(snippetId: Int, selectedLabelIds: Set<Int>) {
         viewModelScope.launch {
-            repository.clearLabelsForSnippet(snippetId)
+            snippetRepo.clearLabelsForSnippet(snippetId)
             selectedLabelIds.forEach { id ->
-                repository.insertSnippetLabelRelation(SnippetLabelRelation(snippetId, id))
+                snippetRepo.insertSnippetLabelRelation(SnippetLabelRelation(snippetId, id))
             }
             refreshSnippets()
         }
@@ -232,8 +241,8 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
 
     fun deleteLabel(label: Label) {
         viewModelScope.launch {
-            repository.deleteRelationsByLabelId(label.id)
-            repository.deleteLabel(label)
+            snippetRepo.deleteRelationsByLabelId(label.id)
+            snippetRepo.deleteLabel(label)
             refreshSnippets()
         }
     }
@@ -266,7 +275,7 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
 
     fun trackAccess(snippetId: Int) {
         viewModelScope.launch {
-            repository.incrementAccess(snippetId, System.currentTimeMillis())
+            snippetRepo.incrementAccess(snippetId, System.currentTimeMillis())
         }
     }
 
@@ -285,11 +294,11 @@ class SnippetViewModel(application: Application) : AndroidViewModel(application)
             var deletedCount = 0
 
             if (snippetDays > 0) {
-                deletedCount += repository.deleteSnippetsOlderThan(System.currentTimeMillis() - snippetDays * 24 * 60 * 60 * 1000L)
+                deletedCount += snippetRepo.deleteSnippetsOlderThan(System.currentTimeMillis() - snippetDays * 24 * 60 * 60 * 1000L)
             }
 
             if (otpHours > 0) {
-                deletedCount += repository.deleteOtpSnippetsOlderThan(System.currentTimeMillis() - otpHours * 60 * 60 * 1000L)
+                deletedCount += snippetRepo.deleteOtpSnippetsOlderThan(System.currentTimeMillis() - otpHours * 60 * 60 * 1000L)
             }
 
             if (deletedCount > 0) {

@@ -16,6 +16,7 @@ class DriveUploadWorker(
     workerParams: WorkerParameters
 ) : CoroutineWorker(context, workerParams) {
 
+    @Suppress("DEPRECATION")
     override suspend fun doWork(): Result {
         val lastAccount = GoogleSignIn.getLastSignedInAccount(applicationContext)
 
@@ -25,7 +26,7 @@ class DriveUploadWorker(
         }
 
         val credential = GoogleAccountCredential.usingOAuth2(
-            applicationContext, listOf(DriveScopes.DRIVE_FILE)
+            applicationContext, listOf(DriveScopes.DRIVE_APPDATA)
         ).apply {
             selectedAccount = lastAccount.account
         }

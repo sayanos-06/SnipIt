@@ -76,12 +76,19 @@ object ActionUtils {
         }
 
 
-        Regex("""\+?[0-9][0-9()\-\s]{10,}""").find(text)?.value?.let { phone ->
-            val intent = Intent(Intent.ACTION_DIAL, "tel:$phone".toUri())
-            val icon = intent.resolveActivity(packageManager)?.let {
-                packageManager.getApplicationIcon(it.packageName)
+        val regex = Regex("""\+?[0-9][0-9()\-\s]{9,}""")
+        val matches = regex.findAll(text)
+        matches.forEach { match ->
+            val candidate = match.value
+            val digitCount = candidate.count { it.isDigit() }
+            if (digitCount >= 10) {
+                val phone = candidate.filter { it.isDigit() || it == '+' }
+                val intent = Intent(Intent.ACTION_DIAL, "tel:$phone".toUri())
+                val icon = intent.resolveActivity(packageManager)?.let {
+                    packageManager.getApplicationIcon(it.packageName)
+                }
+                actions.add(SuggestedAction("Call", icon, intent))
             }
-            actions.add(SuggestedAction("Call", icon, intent))
         }
 
         Regex("""[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}""").find(text)?.value?.let { email ->

@@ -1,4 +1,4 @@
-package com.example.snipit.ui
+package com.example.snipit.viewModels
 
 import android.annotation.SuppressLint
 import android.app.Application
@@ -8,6 +8,7 @@ import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.work.WorkManager
 import com.example.snipit.R
 import com.example.snipit.data.SnippetDatabase
 import com.example.snipit.model.Label
@@ -87,7 +88,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         prefs.edit { putInt("cloud_sync_mode", mode.value) }
         _cloudSyncMode.value = mode
         if (mode == CloudSyncMode.GOOGLE_DRIVE) {
-            SyncScheduler.scheduleDriveBackup(getApplication())
+            SyncScheduler.scheduleDriveBackup(getApplication(), prefs.getInt("scheduled_hour", 3), prefs.getInt("scheduled_minute", 0))
         } else {
             SyncScheduler.cancelDriveBackup(getApplication())
         }
@@ -127,5 +128,25 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setSuggestedActionsEnabled(enabled: Boolean) {
         prefs.edit { putBoolean("suggested_actions_enabled", enabled) }
         _suggestedActionsEnabled.value = enabled
+    }
+
+    fun setScheduledBackupTime(hour: Int, minute: Int, context: Context) {
+        prefs.edit {
+            putInt("scheduled_hour", hour)
+            putInt("scheduled_minute", minute)
+        }
+        if (_cloudSyncMode.value == CloudSyncMode.GOOGLE_DRIVE) SyncScheduler.scheduleDriveBackup(context, hour, minute)
+        else {
+            val infos = WorkManager.getInstance(context)
+                .getWorkInfosForUniqueWork("DriveBackup")
+                .get()
+            if (infos.isNotEmpty()) SyncScheduler.cancelDriveBackup(context)
+        }
+    }
+
+    fun getScheduledBackupTime(): Pair<Int, Int> {
+        val hour = prefs.getInt("scheduled_hour", 3)
+        val minute = prefs.getInt("scheduled_minute", 0)
+        return Pair(hour, minute)
     }
 }

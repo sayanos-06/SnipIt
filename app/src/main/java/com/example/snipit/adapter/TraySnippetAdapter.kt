@@ -14,7 +14,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.snipit.R
 import com.example.snipit.model.Snippet
-import com.example.snipit.ui.SnippetViewModel
+import com.example.snipit.viewModels.SnippetViewModel
 
 class TraySnippetAdapter(
     private val context: Context

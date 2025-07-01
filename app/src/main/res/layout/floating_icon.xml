@@ -4,7 +4,6 @@
     android:layout_height="60dp"
     android:background="@drawable/circle_background"
     android:contentDescription="@string/todo"
-    android:padding="4dp"
-    android:src="@mipmap/ic_launcher"
+    android:src="@drawable/ic_launcher_foreground"
     xmlns:android="http://schemas.android.com/apk/res/android" />
 

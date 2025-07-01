@@ -23,7 +23,7 @@ import com.example.snipit.model.Snippet
 import com.example.snipit.model.SnippetWithLabels
 import com.example.snipit.ui.LabelPickerBottomSheet
 import com.example.snipit.ui.MainActivity
-import com.example.snipit.ui.SnippetViewModel
+import com.example.snipit.viewModels.SnippetViewModel
 import com.example.snipit.utils.ActionUtils
 import com.example.snipit.utils.TimeUtils
 import com.google.android.material.button.MaterialButton
@@ -48,6 +48,7 @@ class SnippetAdapter(
     private var fullSnippets: List<SnippetWithLabels> = listOf()
     private var snippetsWithLabels: List<SnippetWithLabels> = emptyList()
     private val selectedSnippets = mutableSetOf<Snippet>()
+    private var selectionMode: Boolean = false
 
     inner class SnippetViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val text: TextView = itemView.findViewById(R.id.snippetText)
@@ -221,14 +222,15 @@ class SnippetAdapter(
         }
 
         holder.itemView.setOnLongClickListener {
-            toggleSelectedSnippets(snippet)
+            if (!selectionMode) enableSelectionMode()
+            toggleSelectedSnippets(snippet, position)
             onSelectionChanged?.invoke()
             true
         }
 
         holder.itemView.setOnClickListener {
-            if (selectedSnippets.isNotEmpty()) {
-                toggleSelectedSnippets(snippet)
+            if (selectionMode) {
+                toggleSelectedSnippets(snippet, position)
                 onSelectionChanged?.invoke()
             }
         }
@@ -243,7 +245,6 @@ class SnippetAdapter(
             val snippetSame = oldItem.snippet == newItem.snippet
             val labelsSame = oldItem.labels.size == newItem.labels.size &&
                     oldItem.labels.all { label -> newItem.labels.any { it.id == label.id && it.name == label.name } }
-
             return snippetSame && labelsSame
         }
     }
@@ -261,10 +262,9 @@ class SnippetAdapter(
         (context as MainActivity).snippetViewModel.refreshSnippets()
     }
 
-    @SuppressLint("NotifyDataSetChanged")
-    private fun toggleSelectedSnippets(snippet: Snippet) {
+    private fun toggleSelectedSnippets(snippet: Snippet, position: Int) {
         if (!selectedSnippets.add(snippet)) selectedSnippets.remove(snippet)
-        notifyDataSetChanged()
+        notifyItemChanged(position)
     }
 
     @SuppressLint("NotifyDataSetChanged")
@@ -313,6 +313,15 @@ class SnippetAdapter(
         return bitmap?.toDrawable(context.resources).apply {
             this!!.setBounds(0, 0, sizePx, sizePx)
         }
+    }
+
+    fun enableSelectionMode() {
+        selectionMode = true
+    }
+
+    fun disableSelectionMode() {
+        selectionMode = false
+        clearSelectedSnippets()
     }
 }
 

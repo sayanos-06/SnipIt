@@ -48,4 +48,16 @@
     <string name="no_snippets_added_yet_ncopy_one_to_get_started">No snippets added yet.\nCopy one to get started!</string>
     <string name="suggested_actions">Suggested Actions</string>
     <string name="enable_ai_or_regex_based_actions">Enable AI or Regex based actions</string>
+    <string name="deleted">Deleted</string>
+    <string name="restore">Restore</string>
+    <string name="recycle_bin">Recycle Bin</string>
+    <string name="your_bin_is_empty">Your bin is empty</string>
+    <string name="app_icon">App Icon</string>
+    <string name="str_app_name">App Name</string>
+    <string name="app_exclusions">App Exclusions</string>
+    <string name="snippets_in_the_recycle_bin_will_be_permanently_deleted_after_30_days">Snippets in the Recycle bin will be permanently deleted after 30 days.</string>
+    <string name="empty">Empty</string>
+    <string name="restore_all">Restore All</string>
+    <string name="time_for_scheduled_backup_everyday">Time for scheduled backup everyday</string>
+    <string name="scheduled_time">Scheduled Time:</string>
 </resources>

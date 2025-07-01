@@ -84,6 +84,8 @@ class FloatingIconService : Service() {
         params.gravity = Gravity.TOP or Gravity.END
         params.x = 50
         params.y = 100
+        params.width = dpToPx(60)
+        params.height = dpToPx(60)
 
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         windowManager.addView(floatingView, params)
@@ -214,5 +216,9 @@ class FloatingIconService : Service() {
 
     private fun openTray() {
         startService(Intent(this, FloatingTrayService::class.java))
+    }
+
+    private fun dpToPx(dp: Int): Int {
+        return (dp * resources.displayMetrics.density).toInt()
     }
 }

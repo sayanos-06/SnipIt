@@ -10,12 +10,18 @@
         android:id="@+id/action_import"
         android:title="@string/import_snippets"
         android:icon="@drawable/place_item_24px"
-        app:showAsAction="never" />
+        app:showAsAction="ifRoom" />
 
     <item
         android:id="@+id/action_suggest_cleanup"
         android:title="@string/suggest_cleanup"
         android:icon="@drawable/mop_24px"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_bin"
+        android:title="@string/recycle_bin"
+        android:icon="@drawable/home_storage_24px"
         app:showAsAction="ifRoom" />
 
     <item

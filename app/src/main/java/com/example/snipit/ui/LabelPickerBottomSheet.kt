@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.snipit.R
 import com.example.snipit.adapter.LabelPickerAdapter
 import com.example.snipit.model.Label
+import com.example.snipit.viewModels.SnippetViewModel
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar

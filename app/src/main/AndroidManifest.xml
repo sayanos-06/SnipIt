@@ -10,6 +10,42 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <queries>
+
+        <!-- For resolving browsers -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+
+            <data android:scheme="http" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+
+            <data android:scheme="https" />
+        </intent>
+
+        <!-- For phone -->
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+
+            <data android:scheme="tel" />
+        </intent>
+
+        <!-- For email -->
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+
+            <data android:scheme="mailto" />
+        </intent>
+
+        <!-- For calendar -->
+        <intent>
+            <action android:name="android.intent.action.INSERT" />
+
+            <data android:mimeType="vnd.android.cursor.dir/event" />
+        </intent>
+    </queries>
+
     <application
         android:name=".ui.AppObserver"
         android:allowBackup="true"
@@ -22,15 +58,27 @@
         android:theme="@style/Theme.SnipIt"
         tools:targetApi="31">
         <activity
-            android:name=".ui.ClipboardFetcherActivity"
-            android:theme="@style/Theme.Snippet.Transparent"
+            android:name=".ui.AppExclusionActivity"
             android:exported="false" />
+        <activity
+            android:name=".ui.BinActivity"
+            android:enableOnBackInvokedCallback="true"
+            android:exported="false"
+            tools:targetApi="33" />
+        <activity
+            android:name=".ui.ClipboardFetcherActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Snippet.Transparent" />
         <activity
             android:name=".ui.SettingsActivity"
-            android:exported="false" />
+            android:enableOnBackInvokedCallback="true"
+            android:exported="false"
+            tools:targetApi="33" />
         <activity
             android:name=".ui.MainActivity"
-            android:exported="true">
+            android:enableOnBackInvokedCallback="true"
+            android:exported="true"
+            tools:targetApi="33">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -61,33 +109,4 @@
             android:permission="android.permission.SYSTEM_ALERT_WINDOW" />
     </application>
 
-    <queries>
-        <!-- For resolving browsers -->
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="http" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="https" />
-        </intent>
-
-        <!-- For phone -->
-        <intent>
-            <action android:name="android.intent.action.DIAL" />
-            <data android:scheme="tel" />
-        </intent>
-
-        <!-- For email -->
-        <intent>
-            <action android:name="android.intent.action.SENDTO" />
-            <data android:scheme="mailto" />
-        </intent>
-
-        <!-- For calendar -->
-        <intent>
-            <action android:name="android.intent.action.INSERT" />
-            <data android:mimeType="vnd.android.cursor.dir/event" />
-        </intent>
-    </queries>
 </manifest>

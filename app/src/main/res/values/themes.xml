@@ -46,9 +46,8 @@
         <item name="colorSurfaceContainer">@color/md_theme_surfaceContainer</item>
         <item name="colorSurfaceContainerHigh">@color/md_theme_surfaceContainerHigh</item>
         <item name="colorSurfaceContainerHighest">@color/md_theme_surfaceContainerHighest</item>
-        <item name="android:statusBarColor">?attr/colorPrimary</item>
-        <item name="android:windowLightStatusBar">true</item>
         <item name="popupMenuStyle">@style/Widget.SnipIt.PopupMenu</item>
+        <item name="actionModeStyle">@style/MyActionModeStyle</item>
     </style>
 
     <style name="Widget.SnipIt.PopupMenu" parent="Widget.Material3.PopupMenu">
@@ -60,5 +59,15 @@
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:colorBackgroundCacheHint">@null</item>
+    </style>
+
+    <style name="MyActionModeStyle" parent="ThemeOverlay.AppCompat.DayNight.ActionBar">
+        <item name="background">@color/md_theme_primary</item>
+        <item name="titleTextStyle">@style/ActionModeTitleText</item>
+        <item name="subtitleTextStyle">@style/ActionModeTitleText</item>
+    </style>
+
+    <style name="ActionModeTitleText" parent="TextAppearance.AppCompat.Widget.ActionMode.Title">
+        <item name="android:textColor">@color/md_theme_onPrimary</item>
     </style>
 </resources>

@@ -8,12 +8,16 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.Configuration
 import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.provider.Settings
 import android.util.Log
 import android.view.View
+import android.view.WindowInsetsController
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.CompoundButton
 import android.widget.LinearLayout
@@ -24,31 +28,32 @@ import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.example.snipit.R
-import com.google.android.material.materialswitch.MaterialSwitch
-import androidx.core.net.toUri
-import com.example.snipit.service.FloatingIconService
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.snackbar.Snackbar
-import androidx.core.content.edit
-import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.work.Constraints
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.example.snipit.R
+import com.example.snipit.service.FloatingIconService
 import com.example.snipit.utils.DriveServiceHolder
-import com.example.snipit.utils.DriveUploadWorker
 import com.example.snipit.utils.ExportHelper
+import com.example.snipit.utils.SyncScheduler
 import com.example.snipit.utils.TimeUtils
+import com.example.snipit.viewModels.SettingsViewModel
+import com.example.snipit.viewModels.SnippetViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.Scope
+import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.materialswitch.MaterialSwitch
+import com.google.android.material.progressindicator.LinearProgressIndicator
+import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.timepicker.MaterialTimePicker
+import com.google.android.material.timepicker.TimeFormat
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecoverableAuthIOException
 import com.google.api.client.http.javanet.NetHttpTransport
@@ -58,11 +63,13 @@ import com.google.api.services.drive.DriveScopes
 import com.google.api.services.drive.model.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
-import java.util.concurrent.TimeUnit
+import java.util.Locale
+import java.util.concurrent.Executors
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -72,6 +79,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var floatingTraySwitch: MaterialSwitch
     private lateinit var tvCloudSync: TextView
     private lateinit var cloudSyncSetting: LinearLayout
+    @Suppress("DEPRECATION")
     private lateinit var googleSignInClient: GoogleSignInClient
     private var driveService: Drive? = null
     private lateinit var tvAppearanceMode: TextView
@@ -79,8 +87,11 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var cleanupSetting: LinearLayout
     private lateinit var clearClipboardButton: Button
     private lateinit var lastSyncedView: TextView
+    private lateinit var progressIndicator: LinearProgressIndicator
     private lateinit var btnBackupNow: Button
     private lateinit var suggestedActionsSwitch: MaterialSwitch
+    private lateinit var tvScheduledTime: TextView
+    private lateinit var scheduledTimeSetting: LinearLayout
     enum class CloudSyncMode(val value: Int) {
         OFF(0),
         GOOGLE_DRIVE(1);
@@ -108,22 +119,28 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     @SuppressLint("ImplicitSamInstance", "SetTextI18n", "UseCompatLoadingForDrawables")
+    @Suppress("DEPRECATION")
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_settings)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.settingsMain)) { v, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.settingsMain)) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            view.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
             insets
         }
         window.statusBarColor = getColor(R.color.md_theme_primary)
-        val decorView = window.decorView
-        val insetsController = WindowCompat.getInsetsController(window, decorView)
         val isDarkTheme = resources.configuration.uiMode and
-                android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
-        insetsController.isAppearanceLightStatusBars = !isDarkTheme
+                Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+        window.insetsController?.setSystemBarsAppearance(
+            if (isDarkTheme) WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS else 0,
+            WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+        )
+        if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            window.attributes.layoutInDisplayCutoutMode =
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
+        }
 
         snipitServiceSwitch = findViewById(R.id.snipitServiceSwitch)
         floatingTraySwitch = findViewById(R.id.floatingTraySwitch)
@@ -136,6 +153,19 @@ class SettingsActivity : AppCompatActivity() {
         lastSyncedView = findViewById(R.id.lastSyncedText)
         btnBackupNow = findViewById(R.id.btnBackupNow)
         suggestedActionsSwitch = findViewById(R.id.suggestedActionsSwitch)
+        progressIndicator = findViewById(R.id.progressIndicator)
+        tvScheduledTime = findViewById(R.id.tvScheduledTime)
+        scheduledTimeSetting = findViewById(R.id.scheduledTimeSetting)
+
+        val scheduledTime = settingsViewModel.getScheduledBackupTime()
+        val formattedTime = String.format(
+            Locale.getDefault(),
+            "%02d:%02d %s",
+            if (scheduledTime.first % 12 == 0) 12 else scheduledTime.first % 12,
+            scheduledTime.second,
+            if (scheduledTime.first < 12) "AM" else "PM"
+        )
+        tvScheduledTime.text = formattedTime
 
         var hasUserInteracted = false
         val prefs = getSharedPreferences("sync_prefs", MODE_PRIVATE)
@@ -212,9 +242,16 @@ class SettingsActivity : AppCompatActivity() {
                             negativeButton = "No",
                             onPositive = {
                                 driveService = null
-                                googleSignInClient = GoogleSignIn.getClient(this, GoogleSignInOptions.DEFAULT_SIGN_IN)
+                                googleSignInClient = GoogleSignIn.getClient(
+                                    this,
+                                    GoogleSignInOptions.DEFAULT_SIGN_IN
+                                )
                                 googleSignInClient.signOut()
-                                Snackbar.make(findViewById(R.id.settingsMain), "Cloud sync disabled", Snackbar.LENGTH_SHORT).show()
+                                Snackbar.make(
+                                    findViewById(R.id.settingsMain),
+                                    "Cloud sync disabled",
+                                    Snackbar.LENGTH_SHORT
+                                ).show()
                                 settingsViewModel.setCloudSyncMode(selected)
                             },
                             onNegative = { dialog ->
@@ -222,6 +259,7 @@ class SettingsActivity : AppCompatActivity() {
                             }
                         )
                     }
+
                     CloudSyncMode.GOOGLE_DRIVE -> {
                         setupGoogleSignIn()
                         signInToGoogle()
@@ -241,20 +279,86 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
+        val account = GoogleSignIn.getLastSignedInAccount(this)
+        if (account != null && DriveServiceHolder.driveServiceObject == null) {
+            btnBackupNow.isEnabled = false
+            buildDriveService(account, true)
+            btnBackupNow.isEnabled = true
+            ensureDriveBackupScheduled(this)
+        }
+
         btnBackupNow.setOnClickListener {
+            progressIndicator.isIndeterminate = true
+            progressIndicator.visibility = View.VISIBLE
             lifecycleScope.launch(Dispatchers.IO) {
                 try {
                     ExportHelper(this@SettingsActivity).exportSnippetsToDrive(DriveServiceHolder.driveServiceObject!!)
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(this@SettingsActivity, "Backup successful", Toast.LENGTH_SHORT).show()
+                        progressIndicator.isIndeterminate = false
+                        for (i in 1..100) {
+                            if (i == 80 || i == 85 || i == 90 || i == 95) progressIndicator.waveAmplitude = progressIndicator.waveAmplitude - 2
+                            progressIndicator.progress = i
+                            delay(10)
+                        }
+                        progressIndicator.animate()
+                            .alpha(0f)
+                            .setDuration(500)
+                            .withEndAction {
+                                progressIndicator.visibility = View.GONE
+                            }
+                            .start()
+                        Toast.makeText(
+                            this@SettingsActivity,
+                            "Backup successful",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 } catch (e: Exception) {
+                    Log.e("Backup", "Error during backup", e)
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(this@SettingsActivity, "Backup failed: ${e.message}", Toast.LENGTH_LONG).show()
+                        progressIndicator.visibility = View.GONE
+                        Toast.makeText(
+                            this@SettingsActivity,
+                            "Backup failed. Please try again later.",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
             }
         }
+
+        scheduledTimeSetting.setOnClickListener {
+            val (currentHour, currentMinute) = settingsViewModel.getScheduledBackupTime()
+            val materialTimePicker = MaterialTimePicker.Builder()
+                .setTimeFormat(TimeFormat.CLOCK_12H)
+                .setHour(currentHour)
+                .setMinute(currentMinute)
+                .setTitleText("Select Scheduled backup time")
+                .build()
+            materialTimePicker.show(supportFragmentManager, "time_picker")
+            materialTimePicker.addOnPositiveButtonClickListener {
+                settingsViewModel.setScheduledBackupTime(materialTimePicker.hour, materialTimePicker.minute, this)
+                tvScheduledTime.text  = String.format(
+                    Locale.getDefault(),
+                    "%02d:%02d %s",
+                    if (materialTimePicker.hour % 12 == 0) 12 else materialTimePicker.hour % 12,
+                    materialTimePicker.minute,
+                    if (materialTimePicker.hour < 12) "AM" else "PM"
+                )
+                Snackbar.make(
+                    findViewById(R.id.settingsMain),
+                    "Backup scheduled at ${String.format(
+                        Locale.getDefault(),
+                        "%02d:%02d %s",
+                        if (materialTimePicker.hour % 12 == 0) 12 else materialTimePicker.hour % 12,
+                        materialTimePicker.minute,
+                        if (materialTimePicker.hour < 12) "AM" else "PM"
+                    )}",
+                    Snackbar.LENGTH_SHORT
+                ).show()
+            }
+        }
+
 
         appearanceSetting.setOnClickListener {
             val currentTheme = settingsViewModel.getThemeMode()
@@ -299,12 +403,13 @@ class SettingsActivity : AppCompatActivity() {
             showClearClipboardConfirmation(findViewById(R.id.settingsMain))
         }
 
-        findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.materialToolbar)
+        findViewById<MaterialToolbar>(R.id.settingsToolbar)
             ?.setNavigationOnClickListener {
                 onBackPressedDispatcher.onBackPressed()
             }
     }
 
+    @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == RC_SIGN_IN && resultCode == RESULT_OK) {
@@ -320,6 +425,7 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun setupGoogleSignIn() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
@@ -329,6 +435,7 @@ class SettingsActivity : AppCompatActivity() {
         googleSignInClient = GoogleSignIn.getClient(this, gso)
     }
 
+    @Suppress("DEPRECATION")
     private fun signInToGoogle() {
         val account = GoogleSignIn.getLastSignedInAccount(this)
         if (account != null) {
@@ -340,7 +447,8 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun buildDriveService(account: GoogleSignInAccount) {
+    @Suppress("DEPRECATION")
+    private fun buildDriveService(account: GoogleSignInAccount, justBuild: Boolean = false) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val credential = GoogleAccountCredential.usingOAuth2(
@@ -365,26 +473,17 @@ class SettingsActivity : AppCompatActivity() {
                 }
 
                 DriveServiceHolder.driveServiceObject = driveService
+                if (justBuild) return@launch
 
                 downloadAndRestoreFromDrive(driveService, this@SettingsActivity)
-
-                val workRequest = PeriodicWorkRequestBuilder<DriveUploadWorker>(1, TimeUnit.DAYS)
-                    .setConstraints(
-                        Constraints.Builder()
-                            .setRequiredNetworkType(NetworkType.CONNECTED)
-                            .build()
-                    )
-                    .build()
-
-                WorkManager.getInstance(this@SettingsActivity).enqueueUniquePeriodicWork(
-                    "DriveBackup",
-                    ExistingPeriodicWorkPolicy.UPDATE,
-                    workRequest
-                )
             } catch (e: Exception) {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
-                    Snackbar.make(findViewById(R.id.settingsMain), "Drive setup failed", Snackbar.LENGTH_LONG).show()
+                    Snackbar.make(
+                        findViewById(R.id.settingsMain),
+                        "Drive setup failed",
+                        Snackbar.LENGTH_LONG
+                    ).show()
                 }
             }
         }
@@ -417,14 +516,15 @@ class SettingsActivity : AppCompatActivity() {
                 val importCount = settingsViewModel.restoreSnippets(snippetArray, snippetViewModel)
 
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Restored $importCount snippets", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Restored $importCount snippets", Toast.LENGTH_SHORT)
+                        .show()
                     onRestored?.invoke()
                 }
-            } catch (e: Exception) {
-            }
+            } catch (_: Exception) { }
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun isServiceRunning(serviceClass: Class<*>): Boolean {
         val manager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
         return manager.getRunningServices(Int.MAX_VALUE).any {
@@ -464,8 +564,10 @@ class SettingsActivity : AppCompatActivity() {
                 positiveButton = "Allow",
                 negativeButton = "Decline",
                 onPositive = {
-                    val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        "package:$packageName".toUri())
+                    val intent = Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        "package:$packageName".toUri()
+                    )
                     startActivity(intent)
                 },
                 onNegative = { dialog ->
@@ -500,6 +602,28 @@ class SettingsActivity : AppCompatActivity() {
             onNegative = { dialog -> dialog.dismiss() }
         )
     }
+
+    private fun ensureDriveBackupScheduled(context: Context) {
+        WorkManager.getInstance(context)
+            .getWorkInfosForUniqueWork("DriveBackup")
+            .addListener({
+                val infos = WorkManager.getInstance(context)
+                    .getWorkInfosForUniqueWork("DriveBackup")
+                    .get()
+
+                if (infos.isEmpty()) {
+                    Log.d("DriveBackup", "WorkManager job missing. Rescheduling…")
+                    val prefs = context.getSharedPreferences("sync_prefs", MODE_PRIVATE)
+                    val hour = prefs.getInt("scheduled_hour", 3)
+                    val minute = prefs.getInt("scheduled_minute", 0)
+
+                    SyncScheduler.scheduleDriveBackup(context, hour, minute)
+                } else {
+                    Log.d("DriveBackup", "Backup job already scheduled.")
+                }
+            }, Executors.newSingleThreadExecutor())
+    }
+
 
     private fun clearClipboard(view: View) {
         val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager

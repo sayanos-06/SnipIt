@@ -9,27 +9,17 @@
 
     <com.google.android.material.appbar.AppBarLayout
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    app:liftOnScroll="true">
+    android:layout_height="?attr/actionBarSize"
+    android:background="?attr/colorPrimary">
 
-        <com.google.android.material.appbar.CollapsingToolbarLayout
-            style="?attr/collapsingToolbarLayoutMediumStyle"
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/settingsToolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/collapsingToolbarLayoutMediumSize"
-            app:expandedTitleTextColor="?attr/colorOnPrimary"
-            app:collapsedTitleTextColor="?attr/colorOnPrimary"
-            android:background="?attr/colorPrimary">
-
-            <com.google.android.material.appbar.MaterialToolbar
-                android:id="@+id/materialToolbar"
-                android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize"
-                app:title="@string/settings"
-                app:titleTextColor="?attr/colorOnPrimary"
-                app:navigationIcon="@drawable/round_arrow_back_24"
-                app:navigationIconTint="?attr/colorOnPrimary"/>
-
-        </com.google.android.material.appbar.CollapsingToolbarLayout>
+            android:layout_height="?attr/actionBarSize"
+            app:title="@string/settings"
+            app:titleTextColor="?attr/colorOnPrimary"
+            app:navigationIcon="@drawable/round_arrow_back_24"
+            app:navigationIconTint="?attr/colorOnPrimary"/>
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -37,7 +27,7 @@
         android:id="@+id/scrollView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="?attr/collapsingToolbarLayoutMediumSize"
+        android:layout_marginTop="?attr/actionBarSize"
         android:background="?android:attr/colorBackground">
 
         <LinearLayout
@@ -216,6 +206,19 @@
                 android:textColor="?attr/colorOnBackground"
                 android:alpha="0.7" />
 
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/progressIndicator"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="8dp"
+                app:trackThickness="6dp"
+                android:visibility="gone"
+                android:indeterminate="true"
+                android:layout_marginBottom="4dp"
+                app:waveAmplitude="4dp"
+                app:wavelength="32dp"
+                app:waveSpeed="0dp"/>
+
             <Button
                 android:id="@+id/btnBackupNow"
                 android:layout_width="wrap_content"
@@ -225,13 +228,61 @@
                 android:text="@string/backup_now" />
 
             <LinearLayout
+                android:id="@+id/scheduledTimeSetting"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="12dp"
+                android:paddingHorizontal="8dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/scheduled_time"
+                        android:textStyle="bold"
+                        android:textSize="18sp"
+                        android:textColor="?attr/colorOnBackground" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/time_for_scheduled_backup_everyday"
+                        android:textColor="?attr/colorOnBackground"
+                        android:alpha="0.7"
+                        android:paddingTop="2dp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvScheduledTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="?attr/colorOnBackground"
+                    android:textSize="14sp" />
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="@string/todo"
+                    android:src="@drawable/round_chevron_right_24"
+                    android:alpha="0.7"
+                    app:tint="?attr/colorOnBackground" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/appearanceSetting"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:padding="8dp"
                 android:layout_marginTop="4dp"
-                android:layout_marginBottom="16dp"
                 android:background="?attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
@@ -276,6 +327,7 @@
                 android:layout_width="200dp"
                 android:layout_height="60dp"
                 android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp"
                 android:textSize="18sp"
                 android:text="@string/clear_clipboard"
                 android:backgroundTint="@color/md_theme_error"

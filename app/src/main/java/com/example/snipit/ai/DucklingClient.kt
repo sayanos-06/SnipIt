@@ -47,17 +47,22 @@ object DucklingClient {
                     try {
                         val resultList = mutableListOf<DucklingResult>()
                         val body = response.body?.string() ?: return
-
-                        val array = JSONArray(body)
-                        for (i in 0 until array.length()) {
-                            val obj = array.getJSONObject(i)
-                            val dim = obj.getString("dim")
-                            val bodyText = obj.getString("body")
-                            val valueObj = obj.getJSONObject("value")
-                            val value = valueObj.optString("value", "")
-                            resultList.add(DucklingResult(dim, bodyText, value))
+                        try {
+                            val array = JSONArray(body)
+                            for (i in 0 until array.length()) {
+                                val obj = array.getJSONObject(i)
+                                val dim = obj.getString("dim")
+                                val bodyText = obj.getString("body")
+                                val valueObj = obj.getJSONObject("value")
+                                val value = valueObj.optString("value", "")
+                                resultList.add(DucklingResult(dim, bodyText, value))
+                            }
+                        } catch (e: Exception) {
+                            Log.e("DucklingClient", "Error parsing JSON: ${e.message}")
+                            val emptyResultList: List<DucklingResult> = emptyList()
+                            onSuccess(emptyResultList)
+                            return
                         }
-
                         onSuccess(resultList)
                     } catch (e: Error) {
                         val emptyResultList: List<DucklingResult> = emptyList()

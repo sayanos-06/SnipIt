@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import com.example.snipit.R
+import com.example.snipit.ui.SettingsActivity
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
 class CloudSyncBottomSheet(
