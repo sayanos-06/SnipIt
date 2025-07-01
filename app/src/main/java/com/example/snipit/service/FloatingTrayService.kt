@@ -23,6 +23,7 @@ import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LiveData
@@ -47,6 +48,8 @@ class FloatingTrayService : Service() {
     private lateinit var trayView: View
     private lateinit var windowManager: WindowManager
     private lateinit var recyclerView: RecyclerView
+    private lateinit var emptyTrayText: TextView
+    private lateinit var trayTextView: TextView
     private val autoDismissHandler = Handler(Looper.getMainLooper())
     private val autoDismissRunnable = Runnable {
         trayView.animate()
@@ -68,6 +71,8 @@ class FloatingTrayService : Service() {
         trayView = LayoutInflater.from(this).inflate(R.layout.floating_tray, null)
         trayView.findViewById<ImageView>(R.id.btnTrayClose).setColorFilter(getColor(R.color.md_theme_onPrimaryContainer))
         trayView.findViewById<ImageView>(R.id.btnAdd).setColorFilter(getColor(R.color.md_theme_onPrimaryContainer))
+        emptyTrayText = trayView.findViewById(R.id.emptyTrayText)
+        trayTextView = trayView.findViewById(R.id.trayTextView)
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -106,7 +111,7 @@ class FloatingTrayService : Service() {
         }
         recyclerView.adapter = trayAdapter
 
-        val itemTouchHelperCallback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
+        val itemTouchHelperCallback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.RIGHT) {
             override fun onMove(
                 recyclerView: RecyclerView,
                 viewHolder: RecyclerView.ViewHolder,
@@ -116,6 +121,7 @@ class FloatingTrayService : Service() {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 if (direction == ItemTouchHelper.RIGHT) {
                     val position = viewHolder.adapterPosition
+                    if (position == RecyclerView.NO_POSITION) return
                     val adapter = recyclerView.adapter as TraySnippetAdapter
                     val snippet = adapter.currentList[position]
 
@@ -158,7 +164,6 @@ class FloatingTrayService : Service() {
                     typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
                 }
                 val text = "Delete"
-                val textWidth = textPaint.measureText(text)
                 val textHeight = textPaint.descent() - textPaint.ascent()
 
                 if (dX > 0) {
@@ -168,18 +173,6 @@ class FloatingTrayService : Service() {
                     icon.setBounds(iconLeft, iconTop, iconRight, iconBottom)
 
                     val textX = iconRight + 16f
-                    val textY = itemView.top + (itemView.height + textHeight) / 2 - textPaint.descent()
-
-                    background?.draw(c)
-                    icon.draw(c)
-                    c.drawText(text, textX, textY, textPaint)
-                } else {
-                    background?.setBounds(itemView.right + dX.toInt(), itemView.top, itemView.right, itemView.bottom)
-                    val iconRight = itemView.right - iconMargin
-                    val iconLeft = iconRight - icon.intrinsicWidth
-                    icon.setBounds(iconLeft, iconTop, iconRight, iconBottom)
-
-                    val textX = iconLeft - textWidth - 16f
                     val textY = itemView.top + (itemView.height + textHeight) / 2 - textPaint.descent()
 
                     background?.draw(c)

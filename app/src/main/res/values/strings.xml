@@ -60,4 +60,6 @@
     <string name="restore_all">Restore All</string>
     <string name="time_for_scheduled_backup_everyday">Time for scheduled backup everyday</string>
     <string name="scheduled_time">Scheduled Time:</string>
+    <string name="after_you_copy_something_just_tap_on_the_plus_to_capture_your_latest_snippet">After you copy something, just tap on the plus to capture your latest snippet.</string>
+    <string name="copy_a_snippet_to_get_started">Copy a Snippet to get started.</string>
 </resources>
