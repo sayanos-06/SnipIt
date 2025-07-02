@@ -292,7 +292,7 @@ class SettingsActivity : AppCompatActivity() {
             progressIndicator.visibility = View.VISIBLE
             lifecycleScope.launch(Dispatchers.IO) {
                 try {
-                    ExportHelper(this@SettingsActivity).exportSnippetsToDrive(DriveServiceHolder.driveServiceObject!!)
+                    ExportHelper(this@SettingsActivity).exportSnippetsToDrive(DriveServiceHolder.driveServiceObject!!, true)
                     withContext(Dispatchers.Main) {
                         progressIndicator.isIndeterminate = false
                         for (i in 1..100) {

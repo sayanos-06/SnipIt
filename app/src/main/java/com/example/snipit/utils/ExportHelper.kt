@@ -38,12 +38,11 @@ import java.io.ByteArrayOutputStream
 
 class ExportHelper(private val context: Context) {
 
-    suspend fun exportSnippetsToDrive(driveService: Drive) {
+    suspend fun exportSnippetsToDrive(driveService: Drive, override: Boolean = false) {
         try {
             delay(5000)
             val dao = SnippetDatabase.getInstance(context).snippetDao()
             val snippets = dao.getAllSnippetsWithLabelsDirect()
-            val newSnippets = downloadAndRestoreFromDrive(driveService)
 
             val jsonArray = JSONArray()
             snippets.forEach { item ->
@@ -53,13 +52,17 @@ class ExportHelper(private val context: Context) {
                 obj.put("labels", JSONArray(item.labels.map { it.name }))
                 jsonArray.put(obj)
             }
-            newSnippets?.forEach { item ->
-                if (snippets.none { it.snippet.text == item.snippet.text }) {
-                    val obj = JSONObject()
-                    obj.put("text", item.snippet.text)
-                    obj.put("timestamp", item.snippet.timestamp)
-                    obj.put("labels", JSONArray(item.labels.map { it.name }))
-                    jsonArray.put(obj)
+
+            if (!override) {
+                val newSnippets = downloadAndRestoreFromDrive(driveService)
+                newSnippets?.forEach { item ->
+                    if (snippets.none { it.snippet.text == item.snippet.text }) {
+                        val obj = JSONObject()
+                        obj.put("text", item.snippet.text)
+                        obj.put("timestamp", item.snippet.timestamp)
+                        obj.put("labels", JSONArray(item.labels.map { it.name }))
+                        jsonArray.put(obj)
+                    }
                 }
             }
 
