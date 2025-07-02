@@ -15,6 +15,9 @@ interface BinDao {
     @Insert
     suspend fun insert(binSnippet: Bin)
 
+    @Query("SELECT * FROM Bin WHERE text = :text LIMIT 1")
+    suspend fun getBinSnippetByText(text: String): Bin?
+
     @Query("DELETE FROM Bin WHERE originalId = :snippetId")
     suspend fun deleteBySnippetId(snippetId: Int)
 

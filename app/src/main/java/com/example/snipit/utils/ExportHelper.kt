@@ -162,6 +162,7 @@ class ExportHelper(private val context: Context) {
         ActionUtils.clearActionCache()
         val newSnippets: MutableList<SnippetWithLabels> = mutableListOf()
         val repository = SnippetDatabase.getInstance(context).snippetDao()
+        val bin = SnippetDatabase.getInstance(context).binDao()
         for (i in 0 until snippetArray.length()) {
             val item = snippetArray.getJSONObject(i)
             val text = item.getString("text")
@@ -171,6 +172,7 @@ class ExportHelper(private val context: Context) {
             } ?: emptyList()
 
             if (repository.getSnippetByText(text) != null) continue
+            if (bin.getBinSnippetByText(text) != null) continue
 
             val id = repository.insert(Snippet(text = text, timestamp = timestamp)).toInt()
             val labelMap = repository.getAllLabelsDirect().associateBy { it.name }
