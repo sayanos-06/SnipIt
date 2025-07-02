@@ -4,7 +4,29 @@
   <img src="app/src/main/ic_launcher-playstore.png" alt="SnipIt Logo" width="120"/>
 </p>
 
-SnipIt is an intelligent clipboard manager for Android that helps you capture, organize, and interact with your copied snippets. Designed for productivity and ease-of-use, SnipIt automatically saves copied text, provides floating access, and even suggests contextual actions like opening links or adding events to your calendar.
+<p align="center">
+  <a href="https://github.com/sayanos-06/SnipIt">
+    <img alt="GitHub stars" src="https://img.shields.io/github/stars/sayanos-06/SnipIt?style=social">
+  </a>
+  <a href="https://github.com/sayanos-06/SnipIt/releases">
+    <img alt="GitHub release" src="https://img.shields.io/github/v/release/sayanos-06/SnipIt">
+  </a>
+  <a href="https://github.com/sayanos-06/SnipIt/issues">
+    <img alt="GitHub issues" src="https://img.shields.io/github/issues/sayanos-06/SnipIt">
+  </a>
+  <a href="https://github.com/sayanos-06/SnipIt/network/members">
+    <img alt="Forks" src="https://img.shields.io/github/forks/sayanos-06/SnipIt?style=social">
+  </a>
+  <a href="https://github.com/sayanos-06/SnipIt/blob/main/LICENSE">
+    <img alt="License" src="https://img.shields.io/github/license/sayanos-06/SnipIt">
+  </a>
+  <a href="https://developer.android.com/">
+    <img alt="Platform" src="https://img.shields.io/badge/platform-Android-green">
+  </a>
+  <a href="#">
+    <img alt="Kotlin" src="https://img.shields.io/badge/language-Kotlin-blue">
+  </a>
+</p>
 
 ---
 
@@ -28,8 +50,7 @@ SnipIt is an intelligent clipboard manager for Android that helps you capture, o
 ## 📚 Table of Contents
 
 - [✨ Features](#-features)
-- [✅ Core Functionality](#-core-functionality)
-- [📁 Import/Export & Sync](#importexport--sync)
+- [📁 Import/Export & Sync](#-importexport--sync)
 - [⚙️ Settings & Controls](#️-settings--controls)
 - [🧪 Testing & Compatibility](#-testing--compatibility)
 - [🏗️ Tech Stack](#️-tech-stack)
@@ -38,113 +59,125 @@ SnipIt is an intelligent clipboard manager for Android that helps you capture, o
 - [🙌 Acknowledgements](#-acknowledgements)
 - [Contact](#contact)
 
+---
+
 ## ✨ Features
 
 ### ✅ Core Functionality
-- 📋 **Automatic Clipboard Monitoring**
-  - Saves all copied text in the background
-  - Works across all apps
 
-- 💬 **Floating Bubble with Tray**
-  - Chat-head style floating icon
-  - On tap, shows a draggable tray with the latest N snippets
-  - Tray auto-dismisses after inactivity
+- **Automatic Clipboard Monitoring**  
+  Seamlessly captures all copied text from any app without interruptions.
 
-- 🔍 **Search and Filter**
-  - Powerful keyword-based search
-  - Filter snippets by labels/folders
+- **Floating Tray & Floating Icon**  
+  - Chat-head style floating bubble for quick access.
+  - Draggable floating tray showing your latest snippets.
+  - Tray auto-dismisses after inactivity for a clutter-free experience.
 
-- 📌 **Pin & Unpin Snippets**
-  - Keep important snippets always at the top
+- **Advanced Search & Filtering**  
+  - Search snippets by keyword, labels, or fuzzy matching.
+  - Highlight matching keywords in real time.
 
-- ❌ **Delete with Confirmation**
-  - Prevent accidental deletion with confirm dialog
+- **Pin & Unpin Snippets**  
+  Keep your essential snippets pinned at the top of your list.
 
-- ✏️ **Edit Snippets**
-  - Inline edit feature to update saved snippets
+- **Edit & Delete Snippets**  
+  - Edit any saved snippet inline.
+  - Swipe-to-delete support with custom UI and confirmation.
 
-- 🏷️ **Multi-Label Support**
-  - Assign multiple labels/folders to a single snippet
-  - Organize snippets like Gmail-style tags
+- **Multi-Label Support**  
+  Organize snippets into folders or multiple labels like Gmail tags.
 
-- 🔍 **Advanced Search and Filter**
-  - Keyword-based and label-based filtering
-  - Real-time highlighted Search
+- **Smart Suggested Actions**  
+  - Contextual actions using Regex and ML:
+    - 🌐 Open URLs
+    - 📞 Call phone numbers
+    - ✉️ Send emails
+    - 🗓️ Add events to your calendar
+  - Powered by TFLite and Duckling NLP.
+  - Results cached for offline availability.
 
-- 🧠 **Suggested Actions**
-  - Regex + ML-powered contextual suggestions:
-    - 🌐 Open Links
-    - 📞 Call Phone Numbers
-    - ✉️ Send Emails
-    - 🗓️ Add Events to Calendar
-    - 🧠 Powered by TFLite and Duckling NLP
-  - Duckling-detected entities cached for offline use
-  - Smart split-button UI for suggested actions
+---
 
-### 📁 Import/Export & Sync
-- 📤 **Export Snippets**
-  - Export as plain text, JSON, or CSV
-  - Supports SAF (Storage Access Framework)
+## 📁 Import/Export & Sync
 
-- 📥 **Import Snippets**
-  - Import previously backed-up files (JSON/CSV/TXT)
+- **Export Snippets**  
+  Save your snippets as plain text, JSON, or CSV files using Android’s Storage Access Framework.
 
-- ☁️ **Cloud Sync**
-  - 🔄 Google Drive Sync (SAF + account-based)
-  - Periodic or manual sync via Settings
+- **Import Snippets**  
+  Restore previous backups quickly from JSON, CSV, or TXT.
 
-### ⚙️ Settings & Controls
-- 🎨 **Theme Selection (Light/Dark)**
-- 👁️‍🗨️ **Enable/Disable Floating Tray**
-- 🔒 **Permission Handling & Service Toggle**
-- 🧹 **Auto-Cleanup Rules**
-  - Auto-delete snippets older than X months
-  - Auto-remove OTPs after 24/36/48 hours
-- 🧹 **Clear Clipboard Button**
-  - Manual clearing with confirmation
+- **Cloud Backup & Sync**  
+  - Automatic Google Drive backups.
+  - User-specified backup times via a scheduler.
+  - Notifications for successful cloud uploads.
+
+---
+
+## ⚙️ Settings & Controls
+
+- **Theme Switching**  
+  Light, Dark, and System Default modes.
+
+- **Floating Tray Toggle**  
+  Enable or disable the floating bubble overlay.
+
+- **Permission Handling**  
+  Guides users through required overlay and clipboard permissions.
+
+- **Auto-Cleanup Rules**  
+  - Automatically remove snippets older than a custom number of days.
+  - Auto-delete OTP snippets after a specific duration (24/36/48 hours).
+
+- **Manual Clipboard Clearing**  
+  Instantly clear your clipboard with a single tap, with confirmation.
+
+- **Scheduled Backups**  
+  Users can set preferred times for daily backups to Google Drive.
 
 ---
 
 ## 🧪 Testing & Compatibility
 
-- ✅ Tested on Android API 30 to 34
-- 💡 Handles runtime permissions gracefully
-- 🔋 Optimized for battery and background restrictions
-- 🛠️ Regular leak checks and lifecycle awareness
+- Tested on Android API levels 30 to 34.
+- Handles runtime permissions and background restrictions.
+- Optimized for battery life and performance.
+- Regular leak checks for robust stability.
 
 ---
 
 ## 🏗️ Tech Stack
 
-- 💻 **Language**: Kotlin
-- ☕ **Architecture**: MVVM (ViewModel + LiveData + Room)
-- 🔲 **UI**: Material Components + BottomSheets + RecyclerViews
-- 🧠 **ML**: Duckling NLP via Flask backend
-- 🔗 **Cloud**: Google Drive API, SAF Sync
+- **Language**: Kotlin
+- **Architecture**: MVVM (ViewModel, LiveData, Room)
+- **UI**: Material Components, BottomSheets, RecyclerViews
+- **ML**: Duckling NLP via Flask backend
+- **Cloud**: Google Drive API, Storage Access Framework
 
 ---
 
 ## 🚧 Contributing
 
-Contributions are welcome! Please fork the repository and create a pull request. Open an issue if you have ideas, suggestions, or bugs to report.
+Contributions are welcome! Feel free to fork the repository and submit pull requests.  
+If you have feature ideas, improvements, or bugs to report — open an issue.
 
 ---
 
 ## 📃 License
 
-A license for this project has not been chosen yet.
-
-Until a license is added, contributions are welcome. Assume to be open sourced.
+This project currently has no license. Contributions are welcome. Once a license is added, it will apply retroactively.
 
 ---
 
 ## 🙌 Acknowledgements
 
-- Android Jetpack libraries
+- Android Jetpack Libraries
 - TensorFlow Lite Team
+- Duckling NLP Team
 - Google Material Design
 - Firebase & Google Drive APIs
 
+---
+
 ## Contact
 
-- Sayantan Sen : icesanu.2019@gmail.com
+**Sayantan Sen** — [icesanu.2019@gmail.com](mailto:icesanu.2019@gmail.com)
