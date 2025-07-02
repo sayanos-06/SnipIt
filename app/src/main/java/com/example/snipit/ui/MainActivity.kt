@@ -281,10 +281,11 @@ class MainActivity : AppCompatActivity() {
                 )
 
                 searchView?.queryHint = "Search snippets..."
-                searchView?.isSubmitButtonEnabled = true
+                searchView?.isSubmitButtonEnabled = false
 
                 searchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
                     override fun onQueryTextSubmit(query: String?): Boolean {
+                        searchView.clearFocus()
                         return true
                     }
 
