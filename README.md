@@ -33,16 +33,20 @@
 ## 📸 App Screenshots
 
 <p align="center">
-  <img src="screenshots/Screenshot_1.png" width="22%" />
-  <img src="screenshots/Screenshot_2.png" width="22%" />
-  <img src="screenshots/Screenshot_3.png" width="22%" />
-  <img src="screenshots/Screenshot_4.png" width="22%" />
+  <img src="screenshots/Screenshot (1).png" width="22%" />
+  <img src="screenshots/Screenshot (2).png" width="22%" />
+  <img src="screenshots/Screenshot (3).png" width="22%" />
+  <img src="screenshots/Screenshot (4).png" width="22%" />
 </p>
 <p align="center">
-  <img src="screenshots/Screenshot_5.jpg" width="22%" />
-  <img src="screenshots/Screenshot_6.png" width="22%" />
-  <img src="screenshots/Screenshot_7.jpg" width="22%" />
-  <img src="screenshots/Screenshot_8.png" width="22%" />
+  <img src="screenshots/Screenshot (5).png" width="22%" />
+  <img src="screenshots/Screenshot (6).png" width="22%" />
+  <img src="screenshots/Screenshot (7).png" width="22%" />
+  <img src="screenshots/Screenshot (8).png" width="22%" />
+</p>
+<p align="center">
+  <img src="screenshots/Screenshot (9).png" width="22%" />
+  <img src="screenshots/Screenshot (10).png" width="22%" />
 </p>
 
 ---
