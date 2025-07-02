@@ -74,13 +74,15 @@ class BinActivity : AppCompatActivity() {
         override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
             return when (item.itemId) {
                 R.id.action_delete -> {
-                    bulkDeleteConfirmationDialog(binAdapter.getSelectedBinItems())
+                    if (binAdapter.getSelectedBinItems().isNotEmpty()) bulkDeleteConfirmationDialog(binAdapter.getSelectedBinItems())
+                    else Toast.makeText(this@BinActivity, "Nothing to delete", Toast.LENGTH_SHORT).show()
                     mode.finish()
                     true
                 }
 
                 R.id.action_restore -> {
-                    bulkRestoreConfirmationDialog(binAdapter.getSelectedBinItems())
+                    if (binAdapter.getSelectedBinItems().isNotEmpty()) bulkRestoreConfirmationDialog(binAdapter.getSelectedBinItems())
+                    else Toast.makeText(this@BinActivity, "Nothing to restore", Toast.LENGTH_SHORT).show()
                     mode.finish()
                     true
                 }

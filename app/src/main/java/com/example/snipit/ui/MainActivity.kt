@@ -129,15 +129,18 @@ class MainActivity : AppCompatActivity() {
         override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
             return when (item.itemId) {
                 R.id.action_delete -> {
-                    bulkDeleteConfirmationDialog(adapter.getSelectedSnippets())
+                    if (adapter.getSelectedSnippets().isNotEmpty()) bulkDeleteConfirmationDialog(adapter.getSelectedSnippets())
+                    else Snackbar.make(recyclerView, "Nothing to delete", Snackbar.LENGTH_SHORT).show()
                     mode.finish()
                     true
                 }
 
                 R.id.action_pin -> {
-                    adapter.getSelectedSnippets().forEach {
-                        snippetViewModel.updatePinStatus(it.id, true)
-                    }
+                    if (adapter.getSelectedSnippets().isNotEmpty()) {
+                        adapter.getSelectedSnippets().forEach {
+                            snippetViewModel.updatePinStatus(it.id, true)
+                        }
+                    } else Snackbar.make(recyclerView, "Nothing to pin", Snackbar.LENGTH_SHORT).show()
                     mode.finish()
                     true
                 }
@@ -808,12 +811,14 @@ class MainActivity : AppCompatActivity() {
             selectedSnippets = adapter.getSelectedSnippetsWithLabels()
             when (popupItem.itemId) {
                 R.id.action_share -> {
-                    saveShareBottomSheet(isShare = true, selectedSnippets)
+                    if (selectedSnippets.isNotEmpty()) saveShareBottomSheet(isShare = true, selectedSnippets)
+                    else Snackbar.make(recyclerView, "Nothing to share", Snackbar.LENGTH_SHORT).show()
                     true
                 }
 
                 R.id.action_save_as -> {
-                    saveShareBottomSheet(isShare = false, selectedSnippets)
+                    if (selectedSnippets.isNotEmpty()) saveShareBottomSheet(isShare = false, selectedSnippets)
+                    else Snackbar.make(recyclerView, "Nothing to save", Snackbar.LENGTH_SHORT).show()
                     true
                 }
 
