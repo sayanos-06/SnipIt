@@ -33,7 +33,6 @@ import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.snipit.R
 import com.example.snipit.adapter.SnippetAdapter
@@ -66,6 +65,7 @@ import com.google.android.material.chip.ChipGroup
 import kotlinx.coroutines.launch
 import com.example.snipit.model.SnippetWithLabels
 import androidx.core.view.isNotEmpty
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.work.WorkManager
 import com.example.snipit.utils.SyncScheduler
 import com.example.snipit.viewModels.SnippetViewModel
@@ -178,7 +178,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.appExclusionMain)) { view, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             view.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
             insets
@@ -203,9 +203,16 @@ class MainActivity : AppCompatActivity() {
         emptyStateText = findViewById(R.id.emptyStateText)
 
         setSupportActionBar(toolbar)
+        val orientation = resources.configuration.orientation
+        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+        val smallestWidthDp = resources.configuration.smallestScreenWidthDp
+        val isTablet = smallestWidthDp >= 660
+        val spanCount = if (isTablet && isLandscape) 3
+        else if (isTablet || isLandscape) 2
+        else 1
 
         adapter = SnippetAdapter(this, findViewById(android.R.id.content))
-        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.layoutManager = GridLayoutManager(this, spanCount)
         recyclerView.adapter = adapter
         recyclerView.itemAnimator = DefaultItemAnimator().apply {
             addDuration = 250
@@ -556,13 +563,13 @@ class MainActivity : AppCompatActivity() {
             if (key == "cleanup_snippet_days" || key == "cleanup_otp_hours") {
                 val snippetDays = sharedPreferences.getInt("cleanup_snippet_days", -1)
                 val otpHours = sharedPreferences.getInt("cleanup_otp_hours", -1)
-                snippetViewModel.performAutoCleanup(this.findViewById(R.id.appExclusionMain), snippetDays, otpHours)
+                snippetViewModel.performAutoCleanup(this.findViewById(R.id.main), snippetDays, otpHours)
             }
         }
 
         val snippetDays = prefs.getInt("cleanup_snippet_days", -1)
         val otpHours = prefs.getInt("cleanup_otp_hours", -1)
-        snippetViewModel.performAutoCleanup(this.findViewById(R.id.appExclusionMain), snippetDays, otpHours)
+        snippetViewModel.performAutoCleanup(this.findViewById(R.id.main), snippetDays, otpHours)
 
     }
 
@@ -747,7 +754,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.action_suggest_cleanup -> {
                     val toSuggest = snippetViewModel.getSnippetsForCleanup()
                     if (toSuggest.isEmpty()) {
-                        Snackbar.make(this.findViewById(R.id.appExclusionMain), "No old snippets to clean!", Snackbar.LENGTH_SHORT).show()
+                        Snackbar.make(this.findViewById(R.id.main), "No old snippets to clean!", Snackbar.LENGTH_SHORT).show()
                     } else {
                         val texts = toSuggest.joinToString("\n\n") { it.snippet.text.take(100) }
 
@@ -896,9 +903,9 @@ class MainActivity : AppCompatActivity() {
                 writer?.write(saveData)
             }
 
-            Snackbar.make(this.findViewById(R.id.appExclusionMain), "Exported to $fileName.txt", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(this.findViewById(R.id.main), "Exported to $fileName.txt", Snackbar.LENGTH_SHORT).show()
         } else {
-            Snackbar.make(this.findViewById(R.id.appExclusionMain), "Failed to create file", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(this.findViewById(R.id.main), "Failed to create file", Snackbar.LENGTH_SHORT).show()
         }
     }
 
@@ -939,9 +946,9 @@ class MainActivity : AppCompatActivity() {
             outputStream?.bufferedWriter().use { writer ->
                 writer?.write(jsonString)
             }
-            Snackbar.make(this.findViewById(R.id.appExclusionMain), "Exported to $fileName.json", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(this.findViewById(R.id.main), "Exported to $fileName.json", Snackbar.LENGTH_SHORT).show()
         } else {
-            Snackbar.make(this.findViewById(R.id.appExclusionMain), "Failed to create file", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(this.findViewById(R.id.main), "Failed to create file", Snackbar.LENGTH_SHORT).show()
         }
     }
 
@@ -990,14 +997,14 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     writer.flush()
-                    Snackbar.make(this.findViewById(R.id.appExclusionMain), "Snippets exported as CSV.", Snackbar.LENGTH_SHORT).show()
+                    Snackbar.make(this.findViewById(R.id.main), "Snippets exported as CSV.", Snackbar.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                Snackbar.make(this.findViewById(R.id.appExclusionMain), "Failed to export as CSV.", Snackbar.LENGTH_SHORT).show()
+                Snackbar.make(this.findViewById(R.id.main), "Failed to export as CSV.", Snackbar.LENGTH_SHORT).show()
             }
         } else {
-            Snackbar.make(this.findViewById(R.id.appExclusionMain), "Failed to create CSV file.", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(this.findViewById(R.id.main), "Failed to create CSV file.", Snackbar.LENGTH_SHORT).show()
         }
     }
 
@@ -1114,10 +1121,10 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-            Snackbar.make(this.findViewById(R.id.appExclusionMain), "Imported $importedCount new snippets", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(this.findViewById(R.id.main), "Imported $importedCount new snippets", Snackbar.LENGTH_SHORT).show()
         } catch (e: Exception) {
             e.printStackTrace()
-            Snackbar.make(this.findViewById(R.id.appExclusionMain), "Failed to import snippets", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(this.findViewById(R.id.main), "Failed to import snippets", Snackbar.LENGTH_SHORT).show()
         }
     }
 

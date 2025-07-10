@@ -12,7 +12,8 @@ android {
     defaultConfig {
         applicationId = "com.example.snipit"
         minSdk = 29
-        targetSdk = 36
+        //noinspection OldTargetApi
+        targetSdk = 35
         versionCode = 4
         versionName = "2.0.0"
 
