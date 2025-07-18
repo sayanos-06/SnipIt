@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.SnipIt.AnimatedSplash" parent="Theme.SnipIt">
+        <item name="android:windowSplashScreenBackground">?attr/android:colorBackground</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/avd_snipit</item>
+        <item name="android:windowSplashScreenAnimationDuration">1000</item>
+        <item name="postSplashScreenTheme">@style/Theme.SnipIt</item>
+    </style>
+</resources>

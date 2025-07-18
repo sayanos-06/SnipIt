@@ -43,6 +43,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.edit
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.DefaultItemAnimator
@@ -176,6 +177,7 @@ class MainActivity : AppCompatActivity() {
     @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        installSplashScreen()
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { view, insets ->
@@ -641,7 +643,7 @@ class MainActivity : AppCompatActivity() {
         val input = textInputView.findViewById<TextInputEditText>(R.id.textInput)
         input.setText(snippet.text)
         input.setSelection(input.text?.length ?: 0)
-        input.setHint("Edit snippet...")
+        input.hint = "Edit snippet..."
 
         MaterialAlertDialogBuilder(this)
             .setTitle("Edit Snippet")
